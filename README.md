@@ -7,6 +7,7 @@ Required:
 - python3
 - pyqt5 (and some other pyqt5 modules)
 - gir1.2-glib-2.0
+- python3-xlib
 - python3-xdg
 
 For mass storage devices (optional):
