@@ -48,5 +48,4 @@ Pros:
 Cons:
 - too many options.
 
-![My image]
-(https://github.com/frank038/qt5shell/blob/main/screenshot1.jpg)
+![My image](https://github.com/frank038/qt5shell/blob/main/screenshot1.jpg)
