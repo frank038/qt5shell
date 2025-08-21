@@ -1,5 +1,5 @@
 # qt5shell
-A desktop (desktop and panel) for Xorg and Linux.
+A desktop shell (desktop and panel) for Xorg and Linux.
 
 Use the version in the Releases page.
 
