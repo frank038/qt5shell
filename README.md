@@ -38,7 +38,7 @@ the folder qt5shell must be copied into the /opt folder; then launch the file qt
 
 The panel:
 - menu, virtual desktops, taskbar, tray (both versions, xlib and dbus), clipboard (text and images), clock, audio manager, microphone indicator, webcam indicator, battery indicator, calendar, notification history (a notificaition server is needed), timer, internal menu modificator, internal calendar events manager, menu bookmarks, applications can be pinned into the panel; the available option can be selected by using the right mouse button; etc.
-- the desktop: trash-bin, usb devices, usb devices insertion, wallpaper, custom item position, etc.
+- the desktop: trash-bin, usb devices, usb devices insertion, wallpaper, custom item position, thumbails, custom actions, etc.
 
 All the available options and customizations are in the cfg files.
 
