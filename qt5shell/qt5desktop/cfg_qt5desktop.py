@@ -6,7 +6,7 @@ USER_TERMINAL = ""
 # left margin
 M_LEFT=0
 # top margin
-M_TOP=40
+M_TOP=0
 # right margin
 M_RIGHT=0
 # bottom margin
@@ -72,6 +72,8 @@ OPEN_WITH=1
 USE_DELETE=1
 # load the trash module: 0 no - 1 yes
 USE_TRASH=1
+# trash event sounds: 0 no - 1 in and out and empty - 2 empty only
+TRASH_EVENT_SOUNDS=2
 # recycle bin name
 TRASH_NAME="Recycle Bin"
 # load the media: 0 no - 1 yes
@@ -85,7 +87,7 @@ USE_USB_DEVICES=1
 # player to play event sounds: 0 no - 1 use qsound - "player_name"
 SOUND_PLAYER=1
 # media to skip, comma separated values in the form "/dev/xxx" - not reccomanded for removable ones
-MEDIA_SKIP=["/dev/sda1"]
+MEDIA_SKIP=["/dev/sda4","/dev/sda1","/dev/sda3"]
 # Paste and Merge, how to backup the new files: 0 add progressive number
 # in the form _(#) - 1 add date and time (without checking eventually
 # existing file at destination with same date and time suffix) 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Version 0.9.50
+# Version 0.9.51
 
 from PyQt5.QtCore import (pyqtSlot,QProcess, QCoreApplication, QTimer, QModelIndex,QFileSystemWatcher,QEvent,QObject,QUrl,QFileInfo,QRect,QStorageInfo,QMimeData,QMimeDatabase,QFile,QThread,Qt,pyqtSignal,QSize,QMargins,QDir,QByteArray,QItemSelection,QItemSelectionModel,QPoint)
 from PyQt5.QtWidgets import (QStyleFactory,QTreeWidget,QTreeWidgetItem,QLayout,QHeaderView,QTreeView,QSpacerItem,QScrollArea,QTextEdit,QSizePolicy,qApp,QBoxLayout,QLabel,QPushButton,QDesktopWidget,QApplication,QDialog,QGridLayout,QMessageBox,QLineEdit,QTabWidget,QWidget,QGroupBox,QComboBox,QCheckBox,QProgressBar,QListView,QFileSystemModel,QItemDelegate,QStyle,QFileIconProvider,QAbstractItemView,QFormLayout,QAction,QMenu)
@@ -21,6 +21,15 @@ from xdg.BaseDirectory import *
 from xdg.DesktopEntry import *
 from cfg_qt5desktop import *
 
+# "qt5" or "gio": qt5 only empty - gio manages in and out and empty event sounds
+USE_WATCHER = "gio"
+if TRASH_EVENT_SOUNDS == 2:
+    USE_WATCHER = "qt5"
+# with gio: after how many ms the event will be repeated, if the case
+SINGLE_SHOT_RATE = 3000
+if USE_WATCHER == "gio":
+    from gi.repository import Gio
+
 curr_path = os.getcwd()
 
 TRASH_MODULE_IMPORTED = 0
@@ -34,7 +43,10 @@ if USE_TRASH:
     except:
         USE_TRASH = 0
         TRASH_MODULE_IMPORTED = 0
-        
+
+# disable the trashcan sounds
+if USE_TRASH == 0 and TRASH_MODULE_IMPORTED == 0:
+    USE_WATCHER = "NONE"
 
 if USE_MEDIA:
     import pyudev
@@ -978,12 +990,24 @@ class MainWin(QWidget):
         if USE_TRASH and TRASH_MODULE_IMPORTED:
             self.clickable2(self.listview).connect(self.itemsToTrash)
             #
-            fPath.append(TRASH_PATH)
+            if USE_WATCHER == "qt5":
+                fPath.append(TRASH_PATH)
         else:
             MyDialog("Error", "Cannot load the trash module.", self)
         #
         fileSystemWatcher = QFileSystemWatcher(fPath, self)
         fileSystemWatcher.directoryChanged.connect(self.directory_changed)
+        #
+        if USE_TRASH and TRASH_MODULE_IMPORTED and USE_WATCHER == "gio":
+            # needed to track continuous trashed items
+            self.trash_items_keeps_in = 0
+            gio_dir = Gio.File.new_for_path(TRASH_PATH)
+            self.monitor = gio_dir.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, None)
+            # 
+            # self.monitor.props.rate_limit = 100
+            self.monitor.set_rate_limit(3000)
+            self.monitor.connect("changed", self.directory_changed_gio)
+        
         #
         if USE_MEDIA:
             self.count_a = 0
@@ -1073,9 +1097,20 @@ class MainWin(QWidget):
                 if USE_USB_DEVICES == 2:
                     play_sound("USB-Remove.wav")
         
+    def play_sound_restore(self):
+        self.trash_items_keeps_in = 0
+        
     def play_sound(self, _sound):
         if SOUND_PLAYER == 1:
-            QSound.play(_sound)
+            if USE_WATCHER == "gio":
+                if _sound == "trash_in.wav" or _sound == "trash_restore.wav" or _sound == "trash-empty.wav":
+                    if self.trash_items_keeps_in == 0:
+                        self.trash_items_keeps_in = 1
+                        QTimer.singleShot(SINGLE_SHOT_RATE, self.play_sound_restore)
+                    elif self.trash_items_keeps_in == 1:
+                        return
+            sound_full_path = os.path.join(curr_path, "sounds", _sound)
+            QSound.play(sound_full_path)
             return
         elif isinstance(SOUND_PLAYER, str):
             sound_full_path = os.path.join(curr_path, "sounds", _sound)
@@ -1627,6 +1662,34 @@ class MainWin(QWidget):
             else:
                 MyDialog("Info", "No programs found.", self)
         
+    # some items have been added or removed, or the trash can changed
+    def directory_changed_gio(self, monitor, file, other_file, event):
+        event_type = 0
+        if event == Gio.FileMonitorEvent.MOVED_OUT:
+            event_type = 1
+            # file_path = file.get_path()
+            if TRASH_EVENT_SOUNDS == 1:
+                self.play_sound("trash_restore.wav")
+        elif event == Gio.FileMonitorEvent.DELETED:
+            event_type = 2
+        elif event == Gio.FileMonitorEvent.MOVED_IN:
+            event_type = 3
+            if TRASH_EVENT_SOUNDS == 1:
+                self.play_sound("trash_in.wav")
+        #
+        for row in range(self.model.rowCount()):
+            item_model = self.model.item(row)
+            if item_model.data(Qt.UserRole+1) == "trash":
+                tmp = os.listdir(TRASH_PATH)
+                if tmp:
+                    iicon = QIcon.fromTheme("user-trash-full")
+                    item_model.setData(iicon, 1)
+                else:
+                    iicon = QIcon.fromTheme("user-trash")
+                    item_model.setData(iicon, 1)
+                    if TRASH_EVENT_SOUNDS in [1,2] and event_type == 2:
+                        self.play_sound("trash-empty.wav")
+                return
     
     # some items have been added or removed, or the trash can changed
     def directory_changed(self, edir):
@@ -1641,6 +1704,8 @@ class MainWin(QWidget):
                     else:
                         iicon = QIcon.fromTheme("user-trash")
                         item_model.setData(iicon, 1)
+                        if TRASH_EVENT_SOUNDS == 2:
+                            self.play_sound("trash-empty.wav")
                     return
         #
         new_desktop_list = self.desktopItems()
