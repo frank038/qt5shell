@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.50
+# 0.9.51
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -815,14 +815,16 @@ class SecondaryWin(QWidget):
                     self.pbtn.clicked.connect(self.on_pbtn)
                     self.pbtn.setContextMenuPolicy(Qt.CustomContextMenu)
                     self.pbtn.customContextMenuRequested.connect(self.pbtnClicked)
-            # also line 4262 in on_unpin_prog and line 5247 in on_add_item_pin
-            # self.sepLine2 = QFrame()
-            # self.sepLine2.setFrameShape(QFrame.VLine)
-            # self.sepLine2.setFrameShadow(QFrame.Plain)
-            # self.sepLine2.setContentsMargins(0,4,0,4)
-            # self.prog_box.addWidget(self.sepLine2)
-            # if len(progs) == 0:
-                # self.sepLine2.hide()
+            # pinned applications separator
+            if tasklist_position == 0:
+                # also line 4262 in on_unpin_prog and line 5247 in on_add_item_pin
+                self.sepLine2 = QFrame()
+                self.sepLine2.setFrameShape(QFrame.VLine)
+                self.sepLine2.setFrameShadow(QFrame.Plain)
+                self.sepLine2.setContentsMargins(0,4,0,4)
+                self.prog_box.addWidget(self.sepLine2)
+                if len(progs) == 0:
+                    self.sepLine2.hide()
             #
             ## tasklist
             self.ibox = QHBoxLayout()
@@ -4288,8 +4290,9 @@ class SecondaryWin(QWidget):
             result = dlg.exec_()
             dlg.close()
         #  also line 807
-        # if len(os.listdir("applications")) == 0:
-            # self.sepLine2.hide()
+        if tasklist_position == 0:
+            if len(os.listdir("applications")) == 0:
+                self.sepLine2.hide()
     
     # right menu of each application button
     def btnClicked(self, QPos):
@@ -5234,8 +5237,9 @@ class menuWin(QWidget):
         #
         self.window.prog_box.insertWidget(len(os.listdir("applications")), pbtn)
         # also line 807
-        # if len(os.listdir("applications")) == 1:
-            # self.window.sepLine2.show()
+        if tasklist_position == 0:
+            if len(os.listdir("applications")) == 1:
+                self.window.sepLine2.show()
         pbtn.clicked.connect(self.window.on_pbtn)
         pbtn.setContextMenuPolicy(Qt.CustomContextMenu)
         # unpin action
@@ -5978,8 +5982,9 @@ class Calendar(QCalendarWidget):
             # if item[0] == date:
             if tdate == date:
                 label = ClickLabel(self.parent)
+                # start - end - summary - location - description
                 _data1 = item[0][9:11]+":"+item[0][11:13]
-                _data2 = item[4]
+                _data2 = item[2]
                 label.setText(appointment_char+" "+_data1+" "+_data2)
                 label.cdate = tdate
                 label.item = item
