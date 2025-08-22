@@ -87,7 +87,7 @@ USE_USB_DEVICES=1
 # player to play event sounds: 0 no - 1 use qsound - "player_name"
 SOUND_PLAYER=1
 # media to skip, comma separated values in the form "/dev/xxx" - not reccomanded for removable ones
-MEDIA_SKIP=["/dev/sda4","/dev/sda1","/dev/sda3"]
+MEDIA_SKIP=["/dev/sda1"]
 # Paste and Merge, how to backup the new files: 0 add progressive number
 # in the form _(#) - 1 add date and time (without checking eventually
 # existing file at destination with same date and time suffix) 
