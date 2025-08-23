@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Version 0.9.51
+# Version 0.9.52
 
 from PyQt5.QtCore import (pyqtSlot,QProcess, QCoreApplication, QTimer, QModelIndex,QFileSystemWatcher,QEvent,QObject,QUrl,QFileInfo,QRect,QStorageInfo,QMimeData,QMimeDatabase,QFile,QThread,Qt,pyqtSignal,QSize,QMargins,QDir,QByteArray,QItemSelection,QItemSelectionModel,QPoint)
 from PyQt5.QtWidgets import (QStyleFactory,QTreeWidget,QTreeWidgetItem,QLayout,QHeaderView,QTreeView,QSpacerItem,QScrollArea,QTextEdit,QSizePolicy,qApp,QBoxLayout,QLabel,QPushButton,QDesktopWidget,QApplication,QDialog,QGridLayout,QMessageBox,QLineEdit,QTabWidget,QWidget,QGroupBox,QComboBox,QCheckBox,QProgressBar,QListView,QFileSystemModel,QItemDelegate,QStyle,QFileIconProvider,QAbstractItemView,QFormLayout,QAction,QMenu)
@@ -1284,9 +1284,9 @@ class MainWin(QWidget):
                                         ff.write(iitem)
                             except Exception as E:
                                 MyDialog("Error", str(E), self)
-        #
+
     
-    ######################### devices ########################
+######################### devices ########################
     # the devices at program launch
     def on_media_detected(self):
         for device in self.context.list_devices(subsystem='block'):
@@ -1400,47 +1400,50 @@ class MainWin(QWidget):
     # remove the device from the model and view
     def removeMedia(self, ddevice):
         time.sleep(0.1)
-        for row in range(self.model.rowCount()):
-            iitem = self.model.item(row)
-            if iitem == None:
-                continue
-            if iitem.data(Qt.UserRole+1) == "media":
-                if iitem.data(Qt.UserRole+2) == ddevice:
-                    item_idx = None
-                    item_display_name = iitem.data(Qt.DisplayRole)
-                    item_icon_type = iitem.data(Qt.UserRole+3)
-                    for mm in range(len(self.media_added)):
-                        if self.media_added[mm][1].data(Qt.UserRole+2) == ddevice:
-                            iitem_idx = mm
-                    ret = self.model.removeRow(row)
-                    # True if removed
-                    if ret:
-                        # remove the device from the reserved cells
-                        global reserved_cells
-                        reserved_cells.remove(self.media_added[iitem_idx][0])
-                        # remove the device from the list
-                        del self.media_added[iitem_idx]
-                        # restore the positions
-                        self.listviewRestore2()
-                        # desktop notification
-                        if USE_MEDIA and USE_MEDIA_NOTIFICATION:
-                            if shutil.which("notify-send"):
-                                icon_path = os.path.join(os.getcwd(), "icons/drive-harddisk.svg")
-                                if item_icon_type:
-                                    if item_icon_type == "flash-ms":
-                                        item_icon = "icons/media-flash.svg"
-                                    elif item_icon_type == "thumb":
-                                        item_icon = "icons/drive-thumb.svg"
-                                    elif item_icon_type == "disk":
-                                        item_icon = "icons/drive-harddisk.svg"
-                                    elif item_icon_type == "cd":
-                                        item_icon = "icons/media-optical.svg"
-                                    else:
-                                        item_icon = "icons/drive-harddisk.svg"
-                                    icon_path = os.path.join(os.getcwd(), item_icon)
-                                # 
-                                command = ["notify-send", "-e", "-i", icon_path, "-t", "3000", "-u", "normal", item_display_name, "Ejected"]
-                                subprocess.Popen(command)
+        try:
+            for row in range(self.model.rowCount()):
+                iitem = self.model.item(row)
+                if iitem == None:
+                    continue
+                if iitem.data(Qt.UserRole+1) == "media":
+                    if iitem.data(Qt.UserRole+2) == ddevice:
+                        item_idx = None
+                        item_display_name = iitem.data(Qt.DisplayRole)
+                        item_icon_type = iitem.data(Qt.UserRole+3)
+                        for mm in range(len(self.media_added)):
+                            if self.media_added[mm][1].data(Qt.UserRole+2) == ddevice:
+                                iitem_idx = mm
+                        ret = self.model.removeRow(row)
+                        # True if removed
+                        if ret:
+                            # remove the device from the reserved cells
+                            global reserved_cells
+                            reserved_cells.remove(self.media_added[iitem_idx][0])
+                            # remove the device from the list
+                            del self.media_added[iitem_idx]
+                            # restore the positions
+                            self.listviewRestore2()
+                            # desktop notification
+                            if USE_MEDIA and USE_MEDIA_NOTIFICATION:
+                                if shutil.which("notify-send"):
+                                    icon_path = os.path.join(os.getcwd(), "icons/drive-harddisk.svg")
+                                    if item_icon_type:
+                                        if item_icon_type == "flash-ms":
+                                            item_icon = "icons/media-flash.svg"
+                                        elif item_icon_type == "thumb":
+                                            item_icon = "icons/drive-thumb.svg"
+                                        elif item_icon_type == "disk":
+                                            item_icon = "icons/drive-harddisk.svg"
+                                        elif item_icon_type == "cd":
+                                            item_icon = "icons/media-optical.svg"
+                                        else:
+                                            item_icon = "icons/drive-harddisk.svg"
+                                        icon_path = os.path.join(os.getcwd(), item_icon)
+                                    # 
+                                    command = ["notify-send", "-e", "-i", icon_path, "-t", "3000", "-u", "normal", item_display_name, "Ejected"]
+                                    subprocess.Popen(command)
+        except Exception as E:
+            MyDialog("Info", str(E) , self)
     
     # get the device mount point
     def get_device_mountpoint(self, ddevice):
@@ -1450,9 +1453,9 @@ class MainWin(QWidget):
         
     # get the mount point or return N
     def on_get_mounted(self, ddev):
-        path = os.path.join('/org/freedesktop/UDisks2/block_devices/', ddev)
-        bd = self.bus.get_object('org.freedesktop.UDisks2', path)
         try:
+            path = os.path.join('/org/freedesktop/UDisks2/block_devices/', ddev)
+            bd = self.bus.get_object('org.freedesktop.UDisks2', path)
             mountpoint = bd.Get('org.freedesktop.UDisks2.Filesystem', 'MountPoints', dbus_interface='org.freedesktop.DBus.Properties')
             if mountpoint:
                 mountpoint = bytearray(mountpoint[0]).replace(b'\x00', b'').decode('utf-8')
@@ -1480,11 +1483,11 @@ class MainWin(QWidget):
     
     # self.mount_device
     def on_mount_device(self, ddevice, operation):
-        ddev = ddevice.split("/")[-1]
-        progname = 'org.freedesktop.UDisks2'
-        objpath = os.path.join('/org/freedesktop/UDisks2/block_devices', ddev)
-        intfname = 'org.freedesktop.UDisks2.Filesystem'
         try:
+            ddev = ddevice.split("/")[-1]
+            progname = 'org.freedesktop.UDisks2'
+            objpath = os.path.join('/org/freedesktop/UDisks2/block_devices', ddev)
+            intfname = 'org.freedesktop.UDisks2.Filesystem'
             obj  = self.bus.get_object(progname, objpath)
             intf = dbus.Interface(obj, intfname)
             # return the mount point or None if unmount
@@ -1560,7 +1563,7 @@ class MainWin(QWidget):
             return -1
     
     
-    ####################### devices end #######################
+####################### devices end #######################
     
     # get the items in the desktop directory
     def desktopItems(self):
