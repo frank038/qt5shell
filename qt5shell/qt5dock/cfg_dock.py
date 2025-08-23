@@ -35,11 +35,11 @@ SKIP_APP=[]
 CENTRALIZE_EL=0
 # close the menu and the clock applet if focus is lost on another window: 0 no - 1 yes
 LOST_FOCUS_CLOSE=1
-# play sounds: 0 no - 1 use external player - 2 use internal player
-PLAY_SOUND=1
+# play sounds: 0 no - 1 use external player - 2 internal player QSound - 3 internal player GSound
+PLAY_SOUND=2
 # audio player: "NAME" or "" (PLAY_SOUND=1 required)
 A_PLAYER="aplay"
-# play sounds as a window opens or closes: 0 no - 1 yes (PLAY_SOUND=1 required)
+# play sounds as a window opens or closes: 0 no - 1 yes (PLAY_SOUND=1/2 required)
 PLAY_SOUND_WIN=0
 # alarm sound: 0 disabled - 1 enabled (use_clock>0 and PLAY_SOUND=1 are required)
 # right click in the time
@@ -172,6 +172,7 @@ HYPER_CLICK=1
 # mandatory: folder in wich to create the file notificationdonotuse_3: path or ""
 DO_NOT_DISTURB="."
 # type of notifications not to display: 1 only urgency low - 2 only urgency normal and low - 3 all type (default)
+# only 3 - do not change
 DO_NOT_DISTURB_TYPE=3
 #### notification window width and height
 # not_width=800
@@ -183,6 +184,8 @@ not_padx=menu_padx
 not_pady=menu_pady
 # notification icon size in the history
 not_icon_size=96
+# play sound events in not disturb mode: 0 no - 1 yes
+NOT_PLAY_SOUND=1
 #########
 ######### label0 - at far left
 # exec label1 script: 0 to disable - 1 yes

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.52
+# 0.9.53
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -35,6 +35,10 @@ QIcon.setFallbackSearchPaths(["/usr/share/pixmaps"])
 
 if PLAY_SOUND == 2:
     from PyQt5.QtMultimedia import QSound
+elif PLAY_SOUND == 3:
+    import gi
+    gi.require_version('GSound', '1.0')
+    from gi.repository import GSound
 
 import datetime
 
@@ -371,7 +375,7 @@ tray_already_used = 0
 stopCD = 0
 data_run = 1
 
-def play_sound(_sound):
+def play_sound(_sound, from_not=None):
     _sound = os.path.join(curr_path,"sounds",_sound)
     if PLAY_SOUND == 1:
         if not shutil.which(A_PLAYER):
@@ -384,6 +388,21 @@ def play_sound(_sound):
         except: pass
     elif PLAY_SOUND == 2:
         QSound.play(_sound)
+    elif PLAY_SOUND == 3:
+        try:
+            ctx = GSound.Context()
+            ctx.init()
+            if from_not == None:
+                ret = ctx.play_full({GSound.ATTR_MEDIA_FILENAME: _sound})
+            else:
+                ret = ctx.play_full({GSound.ATTR_EVENT_ID: os.path.basename(_sound)})
+                if ret == None:
+                    if not os.path.exists(_sound):
+                        _sound = os.path.join(curr_path, "sounds/urgency-normal.wav")
+                    ret = ctx.play_full({GSound.ATTR_MEDIA_FILENAME: _sound})
+        except:
+            pass
+    #
     return
 
 # 
@@ -1638,14 +1657,13 @@ class SecondaryWin(QWidget):
         _hints = dbus_to_python(not_list[6])
         _timeout = dbus_to_python(not_list[7])
         _transient = self._on_hints(_hints, "transient")
-        #
-        if _transient:
-            return
         # 
         _no_sound = self._on_hints(_hints, "suppress-sound")
         _soundfile = self._on_hints(_hints, "sound-file")
+        if not _soundfile and PLAY_SOUND == 3:
+            _soundfile = self._on_hints(_hints, "sound-name")
         _urgency = self._on_hints(_hints, "urgency")
-        # print
+        # print - da rimuovere
         if "www.youtube.com" in _body:
             try:
                 with open("/opt/tmptmp.txt", "w") as _f:
@@ -1653,22 +1671,39 @@ class SecondaryWin(QWidget):
             except:
                 pass
         #
-        try:
-            _not_name = str(int(time.time()))
-            _not_path = os.path.join(PATH_TO_STORE, _not_name)
-            os.makedirs(_not_path)
-            ff = open(os.path.join(_not_path, "notification"), "w")
-            ff.write(_app_name+"\n\n\n@\n\n\n"+_summary+"\n\n\n@\n\n\n"+_body)
-            ff.close()
-            _desktop_entry = self._on_hints(_hints, "desktop-entry")
-            ret_icon = None
-            if _desktop_entry:
-                ret_icon = self._on_desktop_entry(os.path.basename(_desktop_entry))
-            _pix = self._find_icon(ret_icon, _app_icon, _hints, QSize(not_icon_size, not_icon_size))
-            if _pix:
-                _pix.save(os.path.join(_not_path, "icon"), "PNG")
-        except Exception as E:
-            pass
+        if _transient == None:
+            try:
+                _not_name = str(int(time.time()))
+                _not_path = os.path.join(PATH_TO_STORE, _not_name)
+                os.makedirs(_not_path)
+                ff = open(os.path.join(_not_path, "notification"), "w")
+                ff.write(_app_name+"\n\n\n@\n\n\n"+_summary+"\n\n\n@\n\n\n"+_body)
+                ff.close()
+                _desktop_entry = self._on_hints(_hints, "desktop-entry")
+                ret_icon = None
+                if _desktop_entry:
+                    ret_icon = self._on_desktop_entry(os.path.basename(_desktop_entry))
+                _pix = self._find_icon(ret_icon, _app_icon, _hints, QSize(not_icon_size, not_icon_size))
+                if _pix:
+                    _pix.save(os.path.join(_not_path, "icon"), "PNG")
+            except Exception as E:
+                pass
+        # play sound events
+        if NOT_PLAY_SOUND == 1:
+            if not os.path.exists(os.path.join(curr_path, "notificationdonotuse_3")):
+                try:
+                    if _soundfile:
+                        _sound_path = _soundfile
+                    else:
+                        if _urgency == 2:
+                            _sound_path = os.path.join(curr_path, "sounds/urgency-critical.wav")
+                        elif _urgency == 1 or _urgency == None:
+                            _sound_path = os.path.join(curr_path, "sounds/urgency-normal.wav")
+                        elif _urgency == 0:
+                            _sound_path = os.path.join(curr_path, "sounds/urgency-low.wav")
+                    play_sound(_sound_path)
+                except:
+                    pass
     
     # do not scale
     def _find_icon(self, ret_icon, _icon, _hints, p_lbl_size):
@@ -1754,7 +1789,8 @@ class SecondaryWin(QWidget):
     # find and return the hint
     def _on_hints(self, _hints, _value):
         if _value in _hints:
-            return _hints[_value]
+            # return _hints[_value]
+            return dbus_to_python(_hints[_value])
         return None
     
     # find the icon from the desktop file
