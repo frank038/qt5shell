@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.51
+# 0.9.52
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -1645,6 +1645,13 @@ class SecondaryWin(QWidget):
         _no_sound = self._on_hints(_hints, "suppress-sound")
         _soundfile = self._on_hints(_hints, "sound-file")
         _urgency = self._on_hints(_hints, "urgency")
+        # print
+        if "www.youtube.com" in _body:
+            try:
+                with open("/opt/tmptmp.txt", "w") as _f:
+                    _f.write(str(message.get_args_list()))
+            except:
+                pass
         #
         try:
             _not_name = str(int(time.time()))
@@ -4687,6 +4694,7 @@ class menuWin(QWidget):
             self.listWidget.setWordWrap(True)
             self.listWidget.setTextElideMode(Qt.ElideRight)
         #
+        self.listWidget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         ###########
         self.line_edit = QLineEdit("")
         self.line_edit.setFrame(True)
@@ -4836,7 +4844,7 @@ class menuWin(QWidget):
         self.rbox.addWidget(sepLine2)
         #
         self.hide()
-        self.show()
+        # self.show()
         self.updateGeometry()
         #
         # left
@@ -4871,7 +4879,8 @@ class menuWin(QWidget):
         self.itemSearching = 0
         if LOST_FOCUS_CLOSE == 1:
             self.installEventFilter(self)
-    
+        #
+        self.show()
     #
     def _on_change(self, comm):
         self.close()
