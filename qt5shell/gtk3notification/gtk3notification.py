@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# v. 0.9.52
+# V. 0.9.53
 
 import os,sys,time
 import gi
@@ -122,10 +122,18 @@ class notificationWin(Gtk.Window):
         
         # # hints: "desktop-entry" "image-path" "transient" "urgency" "value"
         # #  "suppress-sound" "sound-file" "sound-name"
-                
-        ## 
-        # self.self_style_context = self.get_style_context()
-        # self.self_style_context.add_class("notificationwin")
+        
+        self.style_provider = Gtk.CssProvider()
+        self.SC = Gtk.StyleContext.new()
+        self.self_style_context = self.get_style_context()
+        self.self_style_context.add_class("notificationwin")
+        css = ".notificationwin { border: 1px solid gray; }"
+        self.style_provider.load_from_data(css.encode('utf-8'))
+        self.SC.add_provider_for_screen(
+        Gdk.Screen.get_default(),
+        self.style_provider,
+        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
         
         self.connect('show', self.on_show)
         
