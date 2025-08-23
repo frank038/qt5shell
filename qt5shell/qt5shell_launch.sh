@@ -7,4 +7,4 @@ cd $thisdir
 # panel
 /opt/qt5shell/qt5dock/qt5dock.sh &
 # notification daemon
-# qt5notification/qt5notification.sh &
+/opt/qt5shell/gtk3notification/gtk3notification.sh &
