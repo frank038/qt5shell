@@ -17,4 +17,4 @@ BOTTOM_LIMIT=200
 # pad between notifications
 PAD_NOT=6
 # the vertical starting position in pixels: 0 default - some number
-NOT_STARTING_Y=40
+NOT_STARTING_Y=0
