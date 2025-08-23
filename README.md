@@ -38,15 +38,17 @@ How to launch the qt5shell:
 the folder qt5shell must be copied into the /opt folder; then launch the file qt5shell_launch.sh (must be made executable); however, any location is valid, unless you modify the file qt5shell_launch.sh accordingly; other bash files maybe need to be modified to match the user programs or options. 
 
 The panel:
-- menu, virtual desktops, taskbar, tray (both versions, xlib and dbus), clipboard (text and images), clock, audio manager, microphone indicator, webcam indicator, battery indicator, calendar, notification history (a notificaition server is needed), timer, internal menu modificator, internal calendar events manager (double click on a date to add an event or on an event to modify or remove it), menu bookmarks, applications can be pinned into the panel; window event sounds; some options are available by using the right mouse button; etc.
+- menu, virtual desktops, taskbar, tray (both versions, xlib and dbus), clipboard (text and images), clock, audio manager, microphone indicator, webcam indicator, battery indicator, calendar, notification history (a notificaition server is needed), timer, internal menu modificator, internal calendar events manager (double click on a date to add an event or on an event to modify or remove it), menu bookmarks, applications can be pinned into the panel; window event sounds; notification event sounds; some options are available by using the right mouse button; etc.
 
 The desktop:
 - trash-bin, usb devices, usb devices insertion, wallpaper, custom item position, thumbails, custom actions, trash-bin event sounds, etc.
 
+The notification server:
+- options in the config file.
+
 All the available options and customizations are in the cfg files.
 
-To do:
-- notification server.
+No more features will be added, maybe.
 
 Pros:
 - too many options, almost for everything.
