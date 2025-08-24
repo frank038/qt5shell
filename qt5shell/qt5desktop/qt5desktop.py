@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Version 0.9.52
+# Version 0.9.54
 
 from PyQt5.QtCore import (pyqtSlot,QProcess, QCoreApplication, QTimer, QModelIndex,QFileSystemWatcher,QEvent,QObject,QUrl,QFileInfo,QRect,QStorageInfo,QMimeData,QMimeDatabase,QFile,QThread,Qt,pyqtSignal,QSize,QMargins,QDir,QByteArray,QItemSelection,QItemSelectionModel,QPoint)
 from PyQt5.QtWidgets import (QStyleFactory,QTreeWidget,QTreeWidgetItem,QLayout,QHeaderView,QTreeView,QSpacerItem,QScrollArea,QTextEdit,QSizePolicy,qApp,QBoxLayout,QLabel,QPushButton,QDesktopWidget,QApplication,QDialog,QGridLayout,QMessageBox,QLineEdit,QTabWidget,QWidget,QGroupBox,QComboBox,QCheckBox,QProgressBar,QListView,QFileSystemModel,QItemDelegate,QStyle,QFileIconProvider,QAbstractItemView,QFormLayout,QAction,QMenu)
@@ -1030,6 +1030,8 @@ class MainWin(QWidget):
         if SCRN_RES:
             screen.geometryChanged.connect(self.on_screen_changed)
         ########
+        # vendor code - product code - icon
+        self.list_usb_devices = []
         if USE_USB_DEVICES:
             # list of idV idP Name Class
             self.dev_lst = []
@@ -1053,14 +1055,24 @@ class MainWin(QWidget):
                 self.dev_lst.append([vendor, product, hw_model, device_type])
                 #
                 if shutil.which("notify-send"):
-                    iicon_type = "icons/usb-port.png"
-                    icon_path = os.path.join(os.getcwd(), iicon_type)
-                    command = ["notify-send", "-e", "-i", icon_path, "-t", "3000", "-u", "normal", hw_model, "Inserted"]
+                    icon_path = None
+                    if USE_USB_DEVICES in [3,4]:
+                        _dret1 = self.find_device_data(vendor,product)
+                        if _dret1:
+                            _dret2 = self.find_device_icon(_dret1)
+                            if _dret2:
+                                icon_path = os.path.join(curr_path,"icons/devices/{}.png".format(_dret2))
+                                self.list_usb_devices.append([vendor,product,_dret2])
+                    if USE_USB_DEVICES in [1,2] or icon_path == None:
+                        iicon_type = "icons/usb-port.png"
+                        icon_path = os.path.join(os.getcwd(), iicon_type)
+                    
+                    command = ["notify-send", "-e", "-i", icon_path, "-t", "2000", "-u", "normal", hw_model, "Inserted"]
                     try:
                         subprocess.Popen(command)
                     except: pass
                 #
-                if USE_USB_DEVICES == 2:
+                if USE_USB_DEVICES in [2,4]:
                     play_sound("USB-Insert.wav")
         elif action == "remove":
             if device.get('DEVTYPE') == "usb_device":
@@ -1087,16 +1099,292 @@ class MainWin(QWidget):
                         break
                 #
                 if shutil.which("notify-send"):
-                    iicon_type = "icons/usb-port.png"
-                    icon_path = os.path.join(os.getcwd(), iicon_type)
-                    command = ["notify-send", "-e", "-i", icon_path, "-t", "3000", "-u", "normal", hw_model, "Removed"]
+                    icon_path = None
+                    if USE_USB_DEVICES in [3,4]:
+                        # _dret1 = self.find_device_data(dvendor,dproduct)
+                        # if _dret1:
+                            # _dret2 = self.find_device_icon(_dret1)
+                            # if _dret2:
+                                # icon_path = os.path.join(curr_path,"icons/devices/{}.png".format(_dret2))
+                        for el in self.list_usb_devices[:]:
+                            # self.list_usb_devices.append([vendor,product,_dret2])
+                            if el[0] == dvendor and el[1] == dproduct:
+                                _icon_name = el[2]
+                                icon_path = os.path.join(curr_path,"icons/devices/{}.png".format(_icon_name))
+                            self.list_usb_devices.remove(el)
+                            break
+                    if USE_USB_DEVICES in [1,2] or icon_path == None:
+                        iicon_type = "icons/usb-port.png"
+                        icon_path = os.path.join(os.getcwd(), iicon_type)
+                    command = ["notify-send", "-e", "-i", icon_path, "-t", "2000", "-u", "normal", hw_model, "Removed"]
                     try:
                         subprocess.Popen(command)
                     except: pass
                 #
-                if USE_USB_DEVICES == 2:
+                if USE_USB_DEVICES in [2,4]:
                     play_sound("USB-Remove.wav")
-        
+    
+    
+    def find_device_data(self,_v,_p):
+        command = "lsusb -d {}:{} -v".format(_v,_p)
+        ret = None
+        try:
+            ret = subprocess.run(command.split(" "), check=True, capture_output=True).stdout
+        except:
+            return None
+        #
+        if ret:
+            _list_device = ret.decode().split("\n")
+            #
+            _ipr = None
+            _bicl = []
+            _biscl = []
+            _bipr = []
+            _l = ["idProduct","bInterfaceClass","bInterfaceSubClass","bInterfaceProtocol"]
+            _ret1 = None
+            #
+            for el in _list_device:
+                for n,ell in enumerate(_l):
+                    if ell in el:
+                        if n == 0:
+                            _ipr = el.strip("\n").strip(" ").lower().split(" ")
+                            for elll in _ipr[:]:
+                                if elll == "":
+                                    _ipr.remove(elll)
+                        elif n == 1:
+                            _d = el.strip("\n").strip(" ").split(" ")
+                            for elll in _d[:]:
+                                if elll == "":
+                                    _d.remove(elll)
+                            _bicl.append(_d)
+                        elif n == 2:
+                            _d = el.strip("\n").strip(" ").split(" ")
+                            for elll in _d[:]:
+                                if elll == "":
+                                    _d.remove(elll)
+                            _biscl.append(_d)
+                        elif n == 3:
+                            _d = el.strip("\n").strip(" ").split(" ")
+                            for elll in _d[:]:
+                                if elll == "":
+                                    _d.remove(elll)
+                            _bipr.append(_d)
+            
+            return (_ipr,_bicl,_biscl,_bipr)
+        #
+        else:
+            return None
+
+
+    # idProduct - bInterfaceClass - bInterfaceSubClass - bInterfaceProtocol
+    def find_device_icon(self, _data):
+        _icon = None
+        # idProduct - bInterfaceClass - bInterfaceSubClass - bInterfaceProtocol
+        iprod,intcl,intsc,intpr = _data
+        #
+        _icon = None
+        #
+        for n,el1 in enumerate(intcl):
+            _aa = " ".join(el1[2:])
+            # huma interface device
+            if "Human Interface Device" in _aa:
+                if "Keyboard" in " ".join(intpr[n][2:]):
+                    _icon = "input-keyboard"
+                    break
+                elif "Mouse" in " ".join(intpr[n][2:]):
+                    _icon = "input-mouse"
+                    break
+                else:
+                    _icon = "input-devices"
+                    break
+            # mass storage
+            elif "Mass Storage" in _aa:
+                if "RBC" in intsc[n]:
+                    _icon = "media-removable"
+                    break
+                elif "Floppy" in " ".join(intsc[n][2:]):
+                    _icon = "media-floppy"
+                    break
+                elif "SCSI" in " ".join(intsc[n][2:]):
+                    _icon = "media-removable"
+                    break
+                elif "atapi" in " ".join(intsc[n][2:].lower()):
+                    _icon = "media-optical"
+                    break
+                else:
+                    _icon = "media-removable"
+                    break
+            elif "Audio" in _aa:
+                _icon = "audio-card"
+                break
+            elif "Communications" in _aa:
+                if "abstract" in intsc[n][2:].lower():
+                    _icon = "modem"
+                    break
+                elif "ethernet" in intsc[n][2:].lower():
+                    _icon = "network-wired"
+                    break
+            elif "Hub" in _aa:
+                _icon = "emblem-shared"
+                break
+            elif "Wireless" in _aa:
+                if "Radio Frequency" in " ".join(intsc[n][2:]):
+                    if "Bluetooth" in " ".join(intpr[n][2:]):
+                        _icon = "bluetooth"
+                        break
+            elif "smartcard" in _aa.lower():
+                _icon = "smartcard"
+                break
+            elif "Video" in _aa:
+                if el1[1] == '14':
+                    _icon = "audio-video"
+                    break
+                else:
+                    _icon = "camera-web"
+                    break
+            elif "Printer" in _aa:
+                _icon = "printer"
+                break
+        # other searching
+        if _icon == None:
+            _is_found = 0
+            # game controllers
+            for el in ["game","controller","controllers","gamepad","joystick"]:
+                if el in " ".join(iprod):
+                    _is_found = 1
+                    _icon = "input-gaming"
+                    break
+            # storage
+            if not _is_found:
+                for el in ["storage"]:
+                    if el in " ".join(iprod).lower():
+                        _is_found = 1
+                        _icon = "media-removable"
+                        break
+            # bluetooth
+            if not _is_found:
+                if "bluetooth" in " ".join(iprod).lower():
+                    _is_found = 1
+                    _icon = "bluetooth"
+            # smartcard
+            if not _is_found:
+                if el1[1] == '11':
+                    _is_found = 1
+                    _icon = "smartcard"
+            # other usb devices
+            if not _is_found:
+                 _icon = "usb-port"        
+        #
+        return _icon
+    
+    
+    # def find_device_data2(self, _v,_p):
+        # #
+        # if not shutil.which("lsusb"):
+            # return None
+        # ret = None
+        # try:
+            # command = "lsusb -d {}:{} -v".format(_v,_p)
+            # ret = subprocess.run(command.split(" "), check=True, capture_output=True).stdout
+        # except:
+            # ret = None
+        # #
+        # if ret:
+            # _list_device = ret.decode().split("\n")
+            # _aa = "    Interface Descriptor:"
+            # _bcl = ""
+            # _bsc = ""
+            # _bpr = ""
+            # _code_bcl = None
+            # for el in _list_device[_list_device.index(_aa):]:
+                # if "bInterfaceClass" in el:
+                    # if _bcl == "":
+                        # _bcl = el
+                # elif "bInterfaceSubClass" in el:
+                    # if _bsc == "":
+                        # _bsc = el
+                # elif "bInterfaceProtocol" in el:
+                    # if _bpr == "":
+                        # _bpr = el
+            # #
+            # _intClass = ""
+            # if _bcl != "":
+                # _bcl_list = _bcl.split(" ")
+                # for el in _bcl_list[:]:
+                    # if el == '':
+                        # _bcl_list.remove(el)
+                # #
+                # _intClass = _bcl_list[2:]
+                # _code_bcl = _bcl_list[1]
+
+            # _intSubClass = ""
+            # if _bsc != "":
+                # _bsc_list = _bsc.split(" ")
+                # for el in _bsc_list[:]:
+                    # if el == '':
+                        # _bsc_list.remove(el)
+                # _intSubClass = _bsc_list[2:]
+            # #
+            # _intProtocol = ""
+            # if _bpr != "":
+                # _bpr_list = _bpr.split(" ")
+                # for el in _bpr_list[:]:
+                    # if el == '':
+                        # _bpr_list.remove(el)
+                # #
+                # _intProtocol = _bpr_list[2:]
+            # #
+            # return ["_".join(_intClass),"_".join(_intSubClass),"_".join(_intProtocol),_code_bcl]
+        # else:
+            # return None
+    
+    # # bInterfaceClass - bInterfaceSubClass - bInterfaceProtocol - bInterfaceClass code
+    # def find_device_icon2(self, _data):
+        # _icon = None
+        # intcl,intsc,intpr,codect = _data
+        # #
+        # if intcl == "Audio":
+            # _icon = "audio-card"
+        # elif intcl == "Communications" and "abstract" in intsc.lower():
+            # _icon = "modem"
+        # elif intcl == "Communications" and "ethernet" in intsc.lower():
+            # _icon = "network-wired"
+        # elif intcl == "Human_Interface_Device":
+            # if intpr == "Keyboard":
+                # _icon = "input-keyboard"
+            # elif intpr == "Mouse":
+                # _icon = "input-mouse"
+            # else:
+                # _icon = "input-devices"
+        # elif intcl == "Mass_Storage":
+            # if intsc == "RBC":
+                # _icon = "media-removable"
+            # elif intsc == "Floppy":
+                # _icon = "media-floppy"
+            # elif intsc == "SCSI":
+                # _icon = "media-removable"
+            # elif "atapi" in intsc.lower():
+                # _icon = "media-optical"
+            # else:
+                # _icon = "media-removable"
+        # elif intcl == "Printer":
+            # _icon = "printer"
+        # elif intcl == "Hub":
+            # _icon = "emblem-shared"
+        # elif intcl == "Video":
+            # if codect == 14:
+                # _icon = "audio-video"
+            # else:
+                # _icon = "camera-web"
+        # elif intcl == "Wireless" and intsc == "Radio_Frequency" and intpr == "Bluetooth":
+            # _icon = "bluetooth"
+        # elif "smartcard" in intcl.lower() or codect == 11:
+            # _icon = "smartcard"
+        # else:
+            # _icon = "usb-port"
+        # #
+        # return _icon
+    
     def play_sound_restore(self):
         self.trash_items_keeps_in = 0
         

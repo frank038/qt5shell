@@ -81,9 +81,10 @@ USE_MEDIA=1
 # use desktop notification throu notify-send for storage devices: 0 not - 1 only ejected - 2 also after inserted
 # do not use both USE_MEDIA_NOTIFICATION and USE_USB_DEVICES
 USE_MEDIA_NOTIFICATION=0
-# notify any usb device added or removed: 0 no - 1 yes - 2 also play sound
+# notify any usb device added or removed: 0 no - 1 yes - 2 play sound (implies 2)
+# 3 try to use specific icon - 4 play sound (implies 3)
 # do not use both USE_MEDIA_NOTIFICATION and USE_USB_DEVICES
-USE_USB_DEVICES=1
+USE_USB_DEVICES=3
 # player to play event sounds: 0 no - 1 use qsound - "player_name"
 SOUND_PLAYER=1
 # media to skip, comma separated values in the form "/dev/xxx" - not reccomanded for removable ones
