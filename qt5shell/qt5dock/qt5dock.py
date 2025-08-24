@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.53
+# 0.9.54
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -5677,7 +5677,8 @@ class calendarWin(QWidget):
             self.listWidget = QListWidget(self)
             self.listWidget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
             self.lbox.addWidget(self.listWidget)
-            self.listWidget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            self.listWidget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            # self.listWidget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
             self.listWidget.setFocus(False)
             self.listWidget.setIconSize(QSize(not_icon_size, not_icon_size))
             self.listWidget.setSpacing(2)
