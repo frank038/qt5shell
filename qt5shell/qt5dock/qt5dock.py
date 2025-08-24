@@ -1663,13 +1663,6 @@ class SecondaryWin(QWidget):
         if not _soundfile and PLAY_SOUND == 3:
             _soundfile = self._on_hints(_hints, "sound-name")
         _urgency = self._on_hints(_hints, "urgency")
-        # print - da rimuovere
-        if "www.youtube.com" in _body:
-            try:
-                with open("/opt/tmptmp.txt", "w") as _f:
-                    _f.write(str(message.get_args_list()))
-            except:
-                pass
         #
         if _transient == None:
             try:
