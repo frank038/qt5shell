@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# V. 0.9.53
+# V. 0.9.54
 
 import os,sys,time
 import gi
@@ -127,7 +127,8 @@ class notificationWin(Gtk.Window):
         self.SC = Gtk.StyleContext.new()
         self.self_style_context = self.get_style_context()
         self.self_style_context.add_class("notificationwin")
-        css = ".notificationwin { border: 1px solid gray; }"
+        # css = ".notificationwin { border: 1px solid gray; }"
+        css = ".notificationwin, .notificationwin button { border: 1px solid gray; }"
         self.style_provider.load_from_data(css.encode('utf-8'))
         self.SC.add_provider_for_screen(
         Gdk.Screen.get_default(),
