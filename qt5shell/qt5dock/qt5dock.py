@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.54
+# 0.9.55
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -2262,6 +2262,22 @@ class SecondaryWin(QWidget):
                 break
         #
         elif _action == "close":
+            #######
+            # monitor off generates the close signal, so check if the webcam is still working
+            _ddd = _dev.split("/")[2]
+            _comm_path = os.path.join(os.getcwd(), "check_webcam.sh")
+            _comm = [_comm_path, _ddd]
+            # a webcam is working
+            _is_found = 0
+            try:
+                _data = subprocess.check_output(_comm, shell=False, encoding='utf-8', cwd=os.getcwd()).strip("\n")
+                if _data:
+                    _is_found = 1
+            except:
+                _is_found = 0
+            if _is_found:
+                return
+            #######
             _num_items = self.wbox.count()
             for i in range(_num_items):
                 item = self.wbox.itemAt(i).widget()
