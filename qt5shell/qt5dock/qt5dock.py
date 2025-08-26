@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.55
+# 0.9.56
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -715,6 +715,7 @@ class SecondaryWin(QWidget):
                 self.cbox.setContentsMargins(4,0,4,0)
                 self.clock_btn = QPushButton()
                 self.clock_btn.setStyleSheet("background: "+self._background_color+";")
+                self.clock_btn.setFlat(True)
                 self.clock_btn.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
                 self.clock_btn.setIcon(QIcon("icons/no_clock.png"))
                 self.clock_btn.setIconSize(QSize(button_size, button_size))
@@ -733,6 +734,7 @@ class SecondaryWin(QWidget):
                 # the window menu
                 self.mbutton = QPushButton()
                 self.mbutton.setStyleSheet("background: "+self._background_color+";")
+                self.mbutton.setFlat(True)
                 self.mbutton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
                 self.mbutton.setIcon(QIcon("icons/menu.png"))
                 self.mbutton.setIconSize(QSize(button_size, button_size))
@@ -814,6 +816,7 @@ class SecondaryWin(QWidget):
                     #
                     self.pbtn = QPushButton()
                     self.pbtn.setStyleSheet("background: "+self._background_color+";")
+                    self.pbtn.setFlat(True)
                     #
                     picon = QIcon.fromTheme(icon)
                     if picon.isNull():
@@ -926,6 +929,7 @@ class SecondaryWin(QWidget):
             self.abox.insertLayout(14, self.audiobox)
             self.btn_audio = QPushButton()
             self.btn_audio.setStyleSheet("background: "+self._background_color+";")
+            self.btn_audio.setFlat(True)
             #
             self.btn_audio.setIconSize(QSize(button_size, button_size))
             _icon = "audio-volume-muted"
@@ -975,7 +979,7 @@ class SecondaryWin(QWidget):
             #
             # default sink name
             self.default_sink_name = None
-            self.card_list = None
+            # self.card_list = None
             # ??
             self.AUDIO_START_LEVEL = AUDIO_START_LEVEL
             self._on_start_vol()
@@ -986,6 +990,7 @@ class SecondaryWin(QWidget):
                 #
                 self.btn_mic = QPushButton()
                 self.btn_mic.setStyleSheet("background: "+self._background_color+";")
+                self.btn_mic.setFlat(True)
                 self.btn_mic.setIconSize(QSize(button_size, button_size))
                 #
                 self.audiobox.insertWidget(1, self.btn_mic)
@@ -1016,6 +1021,7 @@ class SecondaryWin(QWidget):
             self.btn_clip = QPushButton(icon=QIcon("icons/qpasteboard.png"))
             self.btn_clip.setIconSize(QSize(button_size-button_padding, button_size-button_padding))
             self.btn_clip.setStyleSheet("background: "+self._background_color+";")
+            self.btn_clip.setFlat(True)
             #
             self._is_clipboard_shown = 0
             self.actual_clip = None
@@ -1052,6 +1058,7 @@ class SecondaryWin(QWidget):
         if use_battery_info and use_clock:
             self.btn_batt = QPushButton()
             self.btn_batt.setStyleSheet("background: "+self._background_color+";")
+            self.btn_batt.setFlat(True)
             self.btn_batt.type = "bat"
             self.btn_batt.installEventFilter(self)
             #
@@ -1214,6 +1221,7 @@ class SecondaryWin(QWidget):
         tray_btn.setMenu(btn_menu)
         # remove the menu arrow
         tray_btn.setStyleSheet("::menu-indicator{ image: none;width:0px; } QPushButton {background: "+f"{self._background_color}"+"; border: 0px;}")
+        tray_btn.setFlat(True)
         #
         btn_menu.aboutToShow.connect(lambda: self._create_menu(_name,_menu))
         #
@@ -2372,6 +2380,7 @@ class SecondaryWin(QWidget):
         #
         wbtn = QPushButton()
         wbtn.setStyleSheet("background: "+self._background_color+";")
+        wbtn.setFlat(True)
         #
         wbtn.dev = dd[0]
         #
@@ -2457,8 +2466,8 @@ class SecondaryWin(QWidget):
     
     # at this program start
     def _on_start_vol(self):
-        # card list
-        self.card_list = self.pulse.card_list()
+        # # card list
+        # self.card_list = self.pulse.card_list()
         # # default sink name
         self.default_sink_name = None
         try:
@@ -2977,8 +2986,11 @@ class SecondaryWin(QWidget):
         self._set_volume()
     
     def _reload_pulse(self):
-        del self.pulse
-        self.pulse = _pulse.Pulse()
+        try:
+            del self.pulse
+            self.pulse = _pulse.Pulse()
+        except:
+            pass
     
 ############# audio end ##############
 
@@ -4134,6 +4146,7 @@ class SecondaryWin(QWidget):
         "}")
         csa = csaa+csab+csac+csad+csae
         btn.setStyleSheet(csa)
+        # btn.setFlat(True)
         ###########
         # btn.setAutoExclusive(True)
         btn.clicked.connect(self.on_btn_clicked)
@@ -4436,6 +4449,8 @@ class SecondaryWin(QWidget):
                         # elif event.button() == Qt.LeftButton:
                             # self.on_mic1(widget.mapToGlobal(event.pos()))
                             # return True
+                else:
+                    return False
         elif isinstance(widget, QLabel):
             if event.type() == QEvent.Enter:
                 curr_date = QDate.currentDate().toString("ddd d")
@@ -5268,7 +5283,7 @@ class menuWin(QWidget):
         # add the button
         pbtn = QPushButton()
         pbtn.setStyleSheet("background: "+self.window._background_color+";")
-        # pbtn.setFlat(True)
+        pbtn.setFlat(True)
         #
         picon = None
         if os.path.exists(item_icon):
