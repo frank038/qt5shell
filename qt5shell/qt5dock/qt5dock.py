@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.56
+# 0.9.57
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -2470,6 +2470,7 @@ class SecondaryWin(QWidget):
         # self.card_list = self.pulse.card_list()
         # # default sink name
         self.default_sink_name = None
+        _sink_list = []
         try:
             _sink_list = self.pulse.sink_list()
         except:
@@ -2496,7 +2497,8 @@ class SecondaryWin(QWidget):
             if self.start_sink_name != "auto_null":
                 self.default_sink_name = self.start_sink_name
         #
-        for el in self.pulse.sink_list():
+        # for el in self.pulse.sink_list():
+        for el in _sink_list:
             if el.name == _sink_name and el.name != "auto_null":
                 self.pulse.sink_default_set(el)
                 break
@@ -2514,48 +2516,12 @@ class SecondaryWin(QWidget):
                             self.pulse.volume_set_all_chans(ell, _vol)
                         except:
                             pass
+                        break
         # # right click menu - volume
         # self.on_populate_amenu()
         # set the icon and tooltip - volume
         self._set_volume()
     
-    # rebuild the volume menu
-    def on_populate_amenu(self):
-        try:
-            _sink_list = self.pulse.sink_list()
-        except:
-            self._reload_pulse()
-            return
-        for i in range(self.laudiobox.count()):
-            if self.laudiobox.itemAt(i) != None:
-                widget = self.laudiobox.itemAt(i).widget()
-                if isinstance(widget, QRadioButton):
-                    self.laudiobox.removeWidget(widget)
-                    self.laudiobox.takeAt(i)
-                    widget.deleteLater()
-                    widget = None
-        #
-        try:
-            _sink_file_path = os.path.join(curr_path,"sink_default")
-            if os.path.exists(_sink_file_path):
-                with open(_sink_file_path, "r") as _f:
-                    _sink_name = _f.readline()
-                self.start_sink_name = _sink_name.strip("\n")
-        except Exception as E:
-            MyDialog("Error", str(E),None)
-        #
-        for ell in _sink_list:
-            rb0 = QRadioButton(ell.description)
-            self.laudiobox.addWidget(rb0)
-            rb0.item = ell.name
-            if ell.name == self.default_sink_name:
-                rb0.setChecked(True)
-                if ell.name == self.start_sink_name:
-                    self.abtn.setText("Remove as default")
-                else:
-                    self.abtn.setText("Set as default")
-            rb0.clicked.connect(self.on_rb0_clicked)
-        
     # 
     def on_rb0_clicked(self, _bool):
         _item = None
@@ -2750,10 +2716,10 @@ class SecondaryWin(QWidget):
         # sink: remove - new
         if _t in [101,102]:
             # self.on_populate_amenu()
-            self._set_volume()
+            self._set_volume(102)
         # volume changed
         elif _t == 103:
-            self._set_volume()
+            self._set_volume("vol_change")
         # # change on stream or output device - more info missed
         # elif _t == 301:
             # pass
@@ -2766,7 +2732,20 @@ class SecondaryWin(QWidget):
             # if USE_MICROPHONE:
                 # self.on_microphone_changed()
     #
-    def _set_volume(self):
+    def _set_volume(self, _type=None):
+        #### 
+        _default_sink_name = None
+        if _type == 102:
+            # the default sink stored
+            try:
+                _server_info = self.pulse.server_info()
+                _default_sink_name = _server_info.default_sink_name
+                del _server_info
+            except:
+                self._reload_pulse()
+        if _default_sink_name:
+            self.default_sink_name = _default_sink_name
+        ####
         _sink = None
         try:
             for el in self.pulse.sink_list():
@@ -2811,6 +2790,10 @@ class SecondaryWin(QWidget):
                 self.btn_audio.value = [int(_level), _mute]
                 if _sink.description == "Dummy Output":
                     self.btn_audio.setToolTip("{}:{}".format("Dummy Output", _level))
+                    _icon = "audio-volume-muted"
+                    iicon = QIcon.fromTheme(_icon, QIcon("icons/audio-volume-muted.svg"))
+                    self.btn_audio.setIcon(iicon)
+                    self.btn_audio.value = [-999, -999]
                 else:
                     if _mute:
                         _msg = str(_level)+"  (muted)"
@@ -2840,6 +2823,16 @@ class SecondaryWin(QWidget):
     
     # left click
     def on_volume1(self, _pos):
+        ####
+        _default_sink_name = None
+        # the default sink stored
+        try:
+            _server_info = self.pulse.server_info()
+            _default_sink_name = _server_info.default_sink_name
+            del _server_info
+        except:
+            self._reload_pulse()
+        ####
         dsink = None
         try:
             _sink_list = self.pulse.sink_list()
@@ -2847,13 +2840,17 @@ class SecondaryWin(QWidget):
             self._reload_pulse()
             return
         for el in _sink_list:
-            if el.name == self.default_sink_name:
+            if el.name == self.default_sink_name and el.name != "auto_null":
                 dsink = el
+                break
+            else:
+                if el.name == _default_sink_name:
+                    dsink = el
                 break
         #
         if dsink == None:
             self.mslider.setEnabled(False)
-            return
+            # return
         elif dsink.name == "auto_null":
             self.mslider.setEnabled(False)
         elif self.mslider.isEnabled() == False:
@@ -2865,10 +2862,10 @@ class SecondaryWin(QWidget):
                 self.mslider.setEnabled(False)
             elif self.mslider.isEnabled() == False:
                 self.mslider.setEnabled(True)
-        # decimal
-        _vol = round(self.pulse.volume_get_all_chans(dsink),2)
-        self.mslider.setValue(int(_vol*100))
-        #
+            # decimal
+            _vol = round(self.pulse.volume_get_all_chans(dsink),2)
+            self.mslider.setValue(int(_vol*100))
+            #
         self.mmenu.adjustSize()
         self.mmenu.updateGeometry()
         menu_width = self.mmenu.geometry().width()
@@ -2916,6 +2913,51 @@ class SecondaryWin(QWidget):
         elif (x<int(WINW/2)) and x < x1:
             x = x1
         self.amenu.exec_(QPoint(x,y))
+    
+    # rebuild the volume menu
+    def on_populate_amenu(self):
+        try:
+            _sink_list = self.pulse.sink_list()
+        except:
+            self._reload_pulse()
+            return
+        for i in range(self.laudiobox.count()):
+            if self.laudiobox.itemAt(i) != None:
+                widget = self.laudiobox.itemAt(i).widget()
+                if isinstance(widget, QRadioButton):
+                    self.laudiobox.removeWidget(widget)
+                    self.laudiobox.takeAt(i)
+                    widget.deleteLater()
+                    widget = None
+        # print - automatizzare self.start_sink_name con 'set as default'
+        try:
+            _sink_file_path = os.path.join(curr_path,"sink_default")
+            if os.path.exists(_sink_file_path):
+                with open(_sink_file_path, "r") as _f:
+                    _sink_name = _f.readline()
+                self.start_sink_name = _sink_name.strip("\n")
+        except Exception as E:
+            MyDialog("Error", str(E),None)
+        #
+        for ell in _sink_list:
+            ### disable all if no audio devices found
+            ell_name = ell.name
+            if ell_name == "auto_null":
+                self.abtn.setEnabled(False)
+                return
+            if self.abtn.isEnabled() == False:
+                self.abtn.setEnabled(True)
+            ###
+            rb0 = QRadioButton(ell.description)
+            self.laudiobox.addWidget(rb0)
+            rb0.item = ell.name
+            if ell.name == self.default_sink_name:
+                rb0.setChecked(True)
+                if ell.name == self.start_sink_name:
+                    self.abtn.setText("Remove as default")
+                else:
+                    self.abtn.setText("Set as default")
+            rb0.clicked.connect(self.on_rb0_clicked)
     
     # event.angleDelta() : negative down - positive up
     def on_volume_change(self, _direction):
