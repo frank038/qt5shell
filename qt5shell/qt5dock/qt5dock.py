@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-# 0.9.58
+# 0.9.59
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
-from PyQt5.QtGui import (QDesktopServices,QFontMetrics,QFont,QIcon,QImage,QPixmap,QPalette,QWindow,QColor,QPainterPath)
+from PyQt5.QtGui import (QDesktopServices,QCursor,QFontMetrics,QFont,QIcon,QImage,QPixmap,QPalette,QWindow,QColor,QPainterPath)
 import sys, os, time
 import shutil
 from Xlib.display import Display
@@ -5245,7 +5245,8 @@ class menuWin(QWidget):
         if fret:
             item_p = self.listMenu.addAction("Pin")
         #
-        action = self.listMenu.exec_(self.listWidget.mapToGlobal(QPos))
+        # action = self.listMenu.exec_(self.listWidget.mapToGlobal(QPos))
+        action = self.listMenu.exec_(QCursor.pos()+QPoint(2,2))
         #
         if fret == 1 and action == item_p:
             self.on_add_item_pin(_item)
@@ -5479,7 +5480,8 @@ class menuWin(QWidget):
         item_b = self.listMenuR.addAction("Remove from bookmark")
         action = self.listMenuR.exec_(self.listWidget.mapToGlobal(QPos))
         if action == item_b:
-            item_idx = self.listWidget.indexAt(QPos)
+            # item_idx = self.listWidget.indexAt(QPos)
+            item_idx = self.listWidget.indexAt(QCursor.pos()+QPoint(2,2))
             item_row = item_idx.row()
             _item = self.listWidget.item(item_row)
             #
