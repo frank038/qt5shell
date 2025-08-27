@@ -83,8 +83,9 @@ USE_MEDIA=1
 USE_MEDIA_NOTIFICATION=0
 # notify any usb device added or removed: 0 no - 1 yes - 2 play sound (implies 2)
 # 3 try to use specific icon - 4 play sound (implies 3)
+# 5 is like 3 expept for the mass storage devices: it is the same as USE_MEDIA_NOTIFICATION=1 - 6 play sound (implies 5)
 # do not use both USE_MEDIA_NOTIFICATION and USE_USB_DEVICES
-USE_USB_DEVICES=3
+USE_USB_DEVICES=5
 # player to play event sounds: 0 no - 1 use qsound - "player_name"
 SOUND_PLAYER=1
 # media to skip, comma separated values in the form "/dev/xxx" - not reccomanded for removable ones

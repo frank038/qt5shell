@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Version 0.9.54
+# Version 0.9.60
 
 from PyQt5.QtCore import (pyqtSlot,QProcess, QCoreApplication, QTimer, QModelIndex,QFileSystemWatcher,QEvent,QObject,QUrl,QFileInfo,QRect,QStorageInfo,QMimeData,QMimeDatabase,QFile,QThread,Qt,pyqtSignal,QSize,QMargins,QDir,QByteArray,QItemSelection,QItemSelectionModel,QPoint)
 from PyQt5.QtWidgets import (QStyleFactory,QTreeWidget,QTreeWidgetItem,QLayout,QHeaderView,QTreeView,QSpacerItem,QScrollArea,QTextEdit,QSizePolicy,qApp,QBoxLayout,QLabel,QPushButton,QDesktopWidget,QApplication,QDialog,QGridLayout,QMessageBox,QLineEdit,QTabWidget,QWidget,QGroupBox,QComboBox,QCheckBox,QProgressBar,QListView,QFileSystemModel,QItemDelegate,QStyle,QFileIconProvider,QAbstractItemView,QFormLayout,QAction,QMenu)
@@ -1056,10 +1056,16 @@ class MainWin(QWidget):
                 #
                 if shutil.which("notify-send"):
                     icon_path = None
-                    if USE_USB_DEVICES in [3,4]:
+                    if USE_USB_DEVICES in [3,4,5,6]:
                         _dret1 = self.find_device_data(vendor,product)
                         if _dret1:
                             _dret2 = self.find_device_icon(_dret1)
+                            # in the case USE_USB_DEVICES is 5 or 6
+                            if _dret2 == -111:
+                                self.list_usb_devices.append([vendor,product,-111])
+                                if USE_USB_DEVICES == 6:
+                                    play_sound("USB-Insert.wav")
+                                return
                             if _dret2:
                                 icon_path = os.path.join(curr_path,"icons/devices/{}.png".format(_dret2))
                                 self.list_usb_devices.append([vendor,product,_dret2])
@@ -1067,12 +1073,12 @@ class MainWin(QWidget):
                         iicon_type = "icons/usb-port.png"
                         icon_path = os.path.join(os.getcwd(), iicon_type)
                     
-                    command = ["notify-send", "-e", "-i", icon_path, "-t", "2000", "-u", "normal", hw_model, "Inserted"]
+                    command = ["notify-send", "-e", "-i", icon_path, "-t", "3000", "-u", "normal", hw_model, "Inserted"]
                     try:
                         subprocess.Popen(command)
                     except: pass
                 #
-                if USE_USB_DEVICES in [2,4]:
+                if USE_USB_DEVICES in [2,4,6]:
                     play_sound("USB-Insert.wav")
         elif action == "remove":
             if device.get('DEVTYPE') == "usb_device":
@@ -1100,7 +1106,7 @@ class MainWin(QWidget):
                 #
                 if shutil.which("notify-send"):
                     icon_path = None
-                    if USE_USB_DEVICES in [3,4]:
+                    if USE_USB_DEVICES in [3,4,5,6]:
                         # _dret1 = self.find_device_data(dvendor,dproduct)
                         # if _dret1:
                             # _dret2 = self.find_device_icon(_dret1)
@@ -1110,18 +1116,25 @@ class MainWin(QWidget):
                             # self.list_usb_devices.append([vendor,product,_dret2])
                             if el[0] == dvendor and el[1] == dproduct:
                                 _icon_name = el[2]
+                                #### in the case USE_USB_DEVICES is 5 or 6
+                                if _icon_name == -111:
+                                    self.list_usb_devices.remove(el)
+                                    if USE_USB_DEVICES == 6:
+                                        play_sound("USB-Remove.wav")
+                                    return
+                                ####
                                 icon_path = os.path.join(curr_path,"icons/devices/{}.png".format(_icon_name))
                             self.list_usb_devices.remove(el)
                             break
                     if USE_USB_DEVICES in [1,2] or icon_path == None:
                         iicon_type = "icons/usb-port.png"
                         icon_path = os.path.join(os.getcwd(), iicon_type)
-                    command = ["notify-send", "-e", "-i", icon_path, "-t", "2000", "-u", "normal", hw_model, "Removed"]
+                    command = ["notify-send", "-e", "-i", icon_path, "-t", "3000", "-u", "normal", hw_model, "Removed"]
                     try:
                         subprocess.Popen(command)
                     except: pass
                 #
-                if USE_USB_DEVICES in [2,4]:
+                if USE_USB_DEVICES in [2,4,6]:
                     play_sound("USB-Remove.wav")
     
     
@@ -1198,22 +1211,25 @@ class MainWin(QWidget):
                     _icon = "input-devices"
                     break
             # mass storage
-            elif "Mass Storage" in _aa:
-                if "RBC" in intsc[n]:
-                    _icon = "media-removable"
-                    break
-                elif "Floppy" in " ".join(intsc[n][2:]):
-                    _icon = "media-floppy"
-                    break
-                elif "SCSI" in " ".join(intsc[n][2:]):
-                    _icon = "media-removable"
-                    break
-                elif "atapi" in " ".join(intsc[n][2:].lower()):
-                    _icon = "media-optical"
-                    break
-                else:
-                    _icon = "media-removable"
-                    break
+            elif ("Mass Storage" in _aa):
+                if (USE_USB_DEVICES in [3,4]):
+                    if "RBC" in intsc[n]:
+                        _icon = "media-removable"
+                        break
+                    elif "Floppy" in " ".join(intsc[n][2:]):
+                        _icon = "media-floppy"
+                        break
+                    elif "SCSI" in " ".join(intsc[n][2:]):
+                        _icon = "media-removable"
+                        break
+                    elif "atapi" in " ".join(intsc[n][2:].lower()):
+                        _icon = "media-optical"
+                        break
+                    else:
+                        _icon = "media-removable"
+                        break
+                elif USE_USB_DEVICES in [5,6]:
+                    return -111
             elif "Audio" in _aa:
                 _icon = "audio-card"
                 break
@@ -1255,7 +1271,7 @@ class MainWin(QWidget):
                     _icon = "input-gaming"
                     break
             # storage
-            if not _is_found:
+            if not _is_found and USE_USB_DEVICES in [3,4]:
                 for el in ["storage"]:
                     if el in " ".join(iprod).lower():
                         _is_found = 1
@@ -1677,7 +1693,7 @@ class MainWin(QWidget):
         # restore the positions
         self.listviewRestore2()
         # desktop notification
-        if USE_MEDIA and USE_MEDIA_NOTIFICATION == 2 and media_notification:
+        if USE_MEDIA and (USE_MEDIA_NOTIFICATION == 2 or USE_USB_DEVICES in [5,6]) and media_notification:
             if shutil.which("notify-send"):
                 icon_path = os.path.join(os.getcwd(), iicon_type)
                 # 
@@ -1706,13 +1722,14 @@ class MainWin(QWidget):
                         if ret:
                             # remove the device from the reserved cells
                             global reserved_cells
-                            reserved_cells.remove(self.media_added[iitem_idx][0])
+                            if self.media_added[iitem_idx][0] in reserved_cells:
+                                reserved_cells.remove(self.media_added[iitem_idx][0])
                             # remove the device from the list
                             del self.media_added[iitem_idx]
                             # restore the positions
                             self.listviewRestore2()
                             # desktop notification
-                            if USE_MEDIA and USE_MEDIA_NOTIFICATION:
+                            if USE_MEDIA and (USE_MEDIA_NOTIFICATION or USE_USB_DEVICES in [5,6]) :
                                 if shutil.which("notify-send"):
                                     icon_path = os.path.join(os.getcwd(), "icons/drive-harddisk.svg")
                                     if item_icon_type:
@@ -2379,11 +2396,14 @@ class MainWin(QWidget):
                     self.fSetPositionForIndex((x, y), item_model.index())
                 # the media devices
                 elif item_model.data(Qt.UserRole+1) == "media":
-                    for mmedia in self.media_added:
-                        if mmedia[1].data(0) == item_model.data(0):
-                            x = mmedia[0][0]
-                            y = mmedia[0][1]
-                            self.fSetPositionForIndex((x, y), item_model.index())
+                    try:
+                        for mmedia in self.media_added:
+                            if mmedia[1].data(0) == item_model.data(0):
+                                x = mmedia[0][0]
+                                y = mmedia[0][1]
+                                self.fSetPositionForIndex((x, y), item_model.index())
+                    except Exception as E:
+                        MyDialog("Info", "Error:\n", self)
                 #
                 # normal items and desktop files
                 for iitem in items_position:
