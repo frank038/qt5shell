@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.57
+# 0.9.58
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -2834,19 +2834,23 @@ class SecondaryWin(QWidget):
             self._reload_pulse()
         ####
         dsink = None
+        #
         try:
             _sink_list = self.pulse.sink_list()
         except:
             self._reload_pulse()
             return
-        for el in _sink_list:
-            if el.name == self.default_sink_name and el.name != "auto_null":
-                dsink = el
-                break
-            else:
+        if _default_sink_name == "auto_null":
+            # if len(_sink_list) > 1:
+            for el in _sink_list:
+                if el.name != "auto_null":
+                    dsink = el
+                    break
+        else:
+            for el in _sink_list:
                 if el.name == _default_sink_name:
                     dsink = el
-                break
+                    break
         #
         if dsink == None:
             self.mslider.setEnabled(False)
@@ -2929,7 +2933,7 @@ class SecondaryWin(QWidget):
                     self.laudiobox.takeAt(i)
                     widget.deleteLater()
                     widget = None
-        # print - automatizzare self.start_sink_name con 'set as default'
+        #
         try:
             _sink_file_path = os.path.join(curr_path,"sink_default")
             if os.path.exists(_sink_file_path):
