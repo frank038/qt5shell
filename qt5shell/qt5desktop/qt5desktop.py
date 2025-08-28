@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Version 0.9.60
+# Version 0.9.61
 
 from PyQt5.QtCore import (pyqtSlot,QProcess, QCoreApplication, QTimer, QModelIndex,QFileSystemWatcher,QEvent,QObject,QUrl,QFileInfo,QRect,QStorageInfo,QMimeData,QMimeDatabase,QFile,QThread,Qt,pyqtSignal,QSize,QMargins,QDir,QByteArray,QItemSelection,QItemSelectionModel,QPoint)
 from PyQt5.QtWidgets import (QStyleFactory,QTreeWidget,QTreeWidgetItem,QLayout,QHeaderView,QTreeView,QSpacerItem,QScrollArea,QTextEdit,QSizePolicy,qApp,QBoxLayout,QLabel,QPushButton,QDesktopWidget,QApplication,QDialog,QGridLayout,QMessageBox,QLineEdit,QTabWidget,QWidget,QGroupBox,QComboBox,QCheckBox,QProgressBar,QListView,QFileSystemModel,QItemDelegate,QStyle,QFileIconProvider,QAbstractItemView,QFormLayout,QAction,QMenu)
@@ -1014,6 +1014,8 @@ class MainWin(QWidget):
             self.context = pyudev.Context()
             monitor = pyudev.Monitor.from_netlink(self.context)
             monitor.filter_by('block')
+            # # prevent double change disk
+            # self.media_signal_count = 0
             self.observer = pyudev.MonitorObserver(monitor, self.mediaEvent)
             self.observer.daemon
             self.observer.start()
@@ -1063,7 +1065,7 @@ class MainWin(QWidget):
                             # in the case USE_USB_DEVICES is 5 or 6
                             if _dret2 == -111:
                                 self.list_usb_devices.append([vendor,product,-111])
-                                if USE_USB_DEVICES == 6:
+                                if USE_USB_DEVICES  in [2,4,6]:
                                     play_sound("USB-Insert.wav")
                                 return
                             if _dret2:
@@ -1602,7 +1604,8 @@ class MainWin(QWidget):
                     mountpoint = self.get_device_mountpoint(device.device_node)
                     if mountpoint in ["/", "/boot", "/home"]:
                         continue
-                    #
+                #
+                if device.get('ID_FS_USAGE') == "filesystem" or device.get('ID_TYPE') == "cd":
                     if device.get('ID_FS_LABEL'):
                         name = device.get('ID_FS_LABEL')
                     elif device.get('ID_MODEL'):
@@ -1617,6 +1620,13 @@ class MainWin(QWidget):
                     else:
                         ttype = device.get('ID_TYPE')
                     #
+                    if ttype == "cd":
+                        _fs = device.get('ID_FS_USAGE')
+                        if _fs == None:
+                            ttype = "cd_no_disk"
+                        elif _fs == "filesystem":
+                            ttype = "cd_filesystem"
+                    #
                     self.addMedia(device.device_node, name, ttype, 0)
     
     
@@ -1625,7 +1635,38 @@ class MainWin(QWidget):
         # if self.count_a:
             # return
         # self.count_a += 1
-        if action == "add":
+        #
+        if action == "change":
+            if 'DEVTYPE' in device.properties:
+                if device.get('ID_TYPE') == "cd":
+                    ddevice = device.device_node
+                    #
+                    if device.get('ID_FS_LABEL'):
+                        name = device.get('ID_FS_LABEL')
+                    elif device.get('ID_MODEL'):
+                        name = device.get('ID_MODEL')
+                    else:
+                        name = ddevice
+                    # disk - etc.
+                    if device.get('ID_FS_USAGE') == None:
+                        ttype = "cd_no_disk"
+                    elif device.get('ID_FS_USAGE') == "filesystem":
+                        ttype = "cd_filesystem"
+                    #
+                    self.media_signal.emit(action, ddevice, name, ttype)
+                    #
+                    # # prevent double signal
+                    # if ttype == "cd_filesystem" or ttype == "cd_no_disk":
+                        # if self.media_signal_count == 0 or self.media_signal_count == -1:
+                            # self.media_signal.emit(action, ddevice, name, ttype)
+                            # if self.media_signal_count == 0:
+                                # self.media_signal_count = 1
+                            # elif self.media_signal_count == -1:
+                                # self.media_signal_count = 0
+                        # else:
+                            # self.media_signal_count = 0
+                    # 
+        elif action == "add":
             if 'DEVTYPE' in device.properties:
                 if device.get('ID_FS_USAGE') == "filesystem":
                     ddevice = device.device_node
@@ -1643,8 +1684,25 @@ class MainWin(QWidget):
                         ttype = "thumb"
                     else:
                         ttype = device.get('ID_TYPE')
+                        if ttype == "cd":
+                            ttype = "cd_filesystem"
                     #
                     self.media_signal.emit(action, ddevice, name, ttype)
+                # cd reader - no disk
+                elif device.get('ID_FS_USAGE') == None and device.get('ID_TYPE') == "cd":
+                    ddevice = device.device_node
+                    #
+                    if device.get('ID_FS_LABEL'):
+                        name = device.get('ID_FS_LABEL')
+                    elif device.get('ID_MODEL'):
+                        name = device.get('ID_MODEL')
+                    else:
+                        name = ddevice
+                    #
+                    ttype = "cd_no_disk"
+                    #
+                    self.media_signal.emit(action, ddevice, name, ttype)
+        #
         elif action == "remove":
             ddevice = device.device_node
             self.media_signal.emit(action, ddevice, "", "")
@@ -1657,10 +1715,44 @@ class MainWin(QWidget):
             self.addMedia(ddevice, name, ttype, 1)
         elif action == "remove":
             self.removeMedia(ddevice)
+        elif action == "change":
+            if ttype in ["cd_no_disk","cd_filesystem"]:
+                self.changeMedia(ddevice, name, ttype, 1)
+    
+    def changeMedia(self, ddevice, name, ttype, media_notification):
+        iitem = name
+        if ttype == "cd_no_disk":
+            iicon_type = "icons/media-optical-no.svg"
+            iitem = "No disc"
+            nitem = name
+        elif ttype == "cd_filesystem":
+            iicon_type = "icons/media-optical.svg"
+            nitem = name
+        iicon = QIcon(iicon_type)
+        try:
+            for row in range(self.model.rowCount()):
+                _iitem = self.model.item(row)
+                if _iitem == None:
+                    continue
+                if _iitem.data(Qt.UserRole+1) == "media":
+                    if _iitem.data(Qt.UserRole+2) == ddevice:
+                        _iitem.setData(iicon, Qt.DecorationRole)
+                        _iitem.setData(iitem, Qt.DisplayRole)
+                        _iitem.setData(ttype, Qt.UserRole+3)
+                        # # desktop notification
+                        # if USE_MEDIA and (USE_MEDIA_NOTIFICATION == 2 or USE_USB_DEVICES in [5,6]) and media_notification:
+                            # if shutil.which("notify-send"):
+                                # icon_path = os.path.join(os.getcwd(), iicon_type)
+                                # # 
+                                # command = ["notify-send", "-e", "-i", icon_path, "-t", "3000", "-u", "normal", nitem, "Disc changed"]
+                                # subprocess.Popen(command)
+                        break
+        except:
+            pass
     
     # add the device into the model and view
     def addMedia(self, ddevice, name, ttype, media_notification):
-        time.sleep(2)
+        time.sleep(1)
         # the first empty cell
         data = self.itemSetPos2()
         #
@@ -1668,18 +1760,27 @@ class MainWin(QWidget):
             MyDialog("Info", "Cannot add the device {}.".format(name), self)
             return
         #
+        iitem = name
+        #
         if ttype == "flash-ms":
             iicon_type = "icons/media-flash.svg"
         elif ttype == "thumb":
             iicon_type = "icons/drive-thumb.svg"
         elif ttype == "disk":
             iicon_type = "icons/drive-harddisk.svg"
-        elif ttype == "cd":
+        # elif ttype == "cd":
+        elif ttype == "cd_filesystem":
             iicon_type = "icons/media-optical.svg"
+            n_iicon_type = "icons/devices/drive-optical.png"
+        elif ttype == "cd_no_disk":
+            iicon_type = "icons/media-optical-no.svg"
+            n_iicon_type = "icons/devices/drive-optical.png"
+            iitem = "No disc"
+            n_iitem = name
         else:
             iicon_type = "icons/drive-harddisk.svg"
         iicon = QIcon(iicon_type)
-        iitem = name
+        # iitem = name
         item = QStandardItem(iicon, iitem)
         item.setData("media", Qt.UserRole+1)
         item.setData(ddevice, Qt.UserRole+2)
@@ -1695,7 +1796,11 @@ class MainWin(QWidget):
         # desktop notification
         if USE_MEDIA and (USE_MEDIA_NOTIFICATION == 2 or USE_USB_DEVICES in [5,6]) and media_notification:
             if shutil.which("notify-send"):
-                icon_path = os.path.join(os.getcwd(), iicon_type)
+                if ttype in ["cd_no_disk","cd_filesystem"]:
+                    icon_path = os.path.join(os.getcwd(), n_iicon_type)
+                    iitem = n_iitem
+                else:
+                    icon_path = os.path.join(os.getcwd(), iicon_type)
                 # 
                 command = ["notify-send", "-e", "-i", icon_path, "-t", "3000", "-u", "normal", iitem, "Inserted"]
                 subprocess.Popen(command)
@@ -1739,14 +1844,21 @@ class MainWin(QWidget):
                                             item_icon = "icons/drive-thumb.svg"
                                         elif item_icon_type == "disk":
                                             item_icon = "icons/drive-harddisk.svg"
-                                        elif item_icon_type == "cd":
-                                            item_icon = "icons/media-optical.svg"
+                                        # elif item_icon_type == "cd":
+                                            # item_icon = "icons/media-optical.svg"
+                                        elif item_icon_type == "cd_filesystem":
+                                            # item_icon = "icons/media-optical.svg"
+                                            item_icon = "icons/devices/drive-optical.png"
+                                        elif item_icon_type == "cd_no_disk":
+                                            # item_icon = "icons/media-optical-no.svg"
+                                            item_icon = "icons/devices/drive-optical.png"
                                         else:
                                             item_icon = "icons/drive-harddisk.svg"
                                         icon_path = os.path.join(os.getcwd(), item_icon)
                                     # 
                                     command = ["notify-send", "-e", "-i", icon_path, "-t", "3000", "-u", "normal", item_display_name, "Ejected"]
                                     subprocess.Popen(command)
+                        break
         except Exception as E:
             MyDialog("Info", str(E) , self)
     
@@ -1822,13 +1934,16 @@ class MainWin(QWidget):
         ddrive = bd.Get('org.freedesktop.UDisks2.Block', 'Drive', dbus_interface='org.freedesktop.DBus.Properties')
         bd2 = self.bus.get_object('org.freedesktop.UDisks2', ddrive)
         can_poweroff = bd2.Get('org.freedesktop.UDisks2.Drive', 'CanPowerOff', dbus_interface='org.freedesktop.DBus.Properties')
+        is_optical = bd2.Get('org.freedesktop.UDisks2.Drive', 'Optical', dbus_interface='org.freedesktop.DBus.Properties')
+        # if is_optical:
+            # self.media_signal_count = -1
         #
         ret = self.on_eject(ddrive)
         if ret == -1:
             MyDialog("Info", "The device cannot be ejected.", self)
             return
         #
-        if can_poweroff:
+        if can_poweroff and not is_optical:
             try:
                 ret = self.on_poweroff(ddrive)
                 # if ret == -1:
