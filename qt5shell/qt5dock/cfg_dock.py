@@ -53,6 +53,7 @@ AUDIO_STEP=5
 # starting audio level: 0-100
 AUDIO_START_LEVEL=30
 # show the microphone icon - experimental - USE_AUDIO is required
+# 0 no - 1 yes - 2 also get the applications using it
 USE_MICROPHONE=1
 # audio control panel command
 MIXER_CONTROL="pavucontrol-qt"

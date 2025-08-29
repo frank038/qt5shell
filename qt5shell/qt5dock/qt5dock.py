@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.59
+# 0.9.63
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -1000,7 +1000,8 @@ class SecondaryWin(QWidget):
                 #
                 _icon = "audio-input-microphone"
                 iicon = None
-                iicon = QIcon.fromTheme(_icon, QIcon("icons/audio-input-microphone.svg"))
+                # iicon = QIcon.fromTheme(_icon, QIcon("icons/audio-input-microphone.svg"))
+                iicon = QIcon("icons/audio-input-microphone-off.svg")
                 if iicon and not iicon.isNull():
                     self.btn_mic.setIcon(iicon)
                 #
@@ -1011,6 +1012,9 @@ class SecondaryWin(QWidget):
                 self.micmenu.setLayout(self.micbox)
                 #
                 self.on_microphone()
+                # applications that use the mic: client_index, client_name, source_idx
+                self.client_mic = []
+                self.client_mic_change = None
             #
             self.athread = audioThread(_pulse)
             self.athread.sig.connect(self.athreadslot)
@@ -2709,8 +2713,74 @@ class SecondaryWin(QWidget):
             self.on_list_audio(_list[1], 201)
         elif _list[0] == "new-source":
             self.on_list_audio(_list[1], 202)
-        # elif _list[0] == "change-source":
-            # self.on_list_audio(_list[1], 203)
+        # with client
+        elif USE_MICROPHONE == 2 and _list[0] == "change-source":
+            self.on_list_audio(_list[1], 203)
+        elif USE_MICROPHONE == 2 and _list[0] == "client-new":
+            self.on_list_audio(_list[1], 301)
+        elif USE_MICROPHONE == 2 and _list[0] == "client-removed":
+            self.on_list_audio(_list[1], 302)
+            
+    def on_new_client(self, _idx):
+        _client = self.pulse.client_info(_idx)
+        _client_idx = _client.index
+        _client_name = _client.name
+        # applications that use the mic: client_index, client_name, source_idx
+        self.client_mic.append([_client_idx,_client_name])
+        # print("CLIENT: {} - {}".format(_client_idx, _client_name))
+        #
+        if _client_idx != None:
+            _t = QTimer.singleShot(1000, lambda: self.on_add_client(_client_idx))
+            if _t:
+                _t.start()
+        
+    def on_get_client_source(self, _idx):
+        for el in self.pulse.source_list():
+            if el.index == _idx:
+                self.client_mic_change = _idx
+                break
+    
+    def on_add_client(self, _idx=None):
+        if _idx == None:
+            return
+        for el in self.client_mic[:]:
+            if el[0] == _idx:
+                el.append(self.client_mic_change)
+                break
+        self.client_mic_change = None
+        # print("CLIENT LIST: ", self.client_mic)
+        if len(self.client_mic) > 0:
+            # self.btn_mic.setStyleSheet("background-color: #75DB23;")
+            iicon = QIcon("icons/audio-input-microphone-on.svg")
+            if iicon and not iicon.isNull():
+                self.btn_mic.setIcon(iicon)
+            _tooltip = ""
+            for el in self.client_mic:
+                if _tooltip != "":
+                    _tooltip += "\n"
+                _tooltip += el[1]
+            if _tooltip:
+                self.btn_mic.setToolTip(_tooltip)
+    
+    def on_remove_client(self, _idx):
+        for el in self.client_mic[:]:
+            if el[0] == _idx:
+                self.client_mic.remove(el)
+                break
+        #
+        if len(self.client_mic) == 0:
+            # self.btn_mic.setStyleSheet("background: "+self._background_color+";")
+            iicon = QIcon("icons/audio-input-microphone-off.svg")
+            if iicon and not iicon.isNull():
+                self.btn_mic.setIcon(iicon)
+            self.btn_mic.setToolTip("")
+        else:
+            _tooltip = ""
+            for el in self.client_mic:
+                if _tooltip != "":
+                    _tooltip += "\n"
+                _tooltip += el[1]
+            self.btn_mic.setToolTip(_tooltip)
     
     def on_list_audio(self, _el, _t):
         # sink: remove - new
@@ -2728,9 +2798,18 @@ class SecondaryWin(QWidget):
             if USE_MICROPHONE:
                 # self.on_populate_micmenu()
                 self.on_microphone()
-        # elif _t == 203:
+        # source with client
+        elif _t == 203:
+            self.on_get_client_source(_el)
             # if USE_MICROPHONE:
                 # self.on_microphone_changed()
+        # client new
+        elif _t == 301:
+            self.on_new_client(_el)
+        # client removed
+        elif _t == 302:
+            self.on_remove_client(_el)
+    
     #
     def _set_volume(self, _type=None):
         #### 
@@ -4654,15 +4733,23 @@ class audioThread(QThread):
                         self.sig.emit(["new-sink", ev.index])
                 # source
                 elif ev.facility == pulse.event_facilities[8]:
-                    # if ev.t == self.pulse.PulseEventTypeEnum.change:
-                        # self.sig.emit(["change-source", ev.index])
-                    # el
-                    if ev.t == self.pulse.PulseEventTypeEnum.remove:
+                    # with client
+                    if ev.t == self.pulse.PulseEventTypeEnum.change:
+                        self.sig.emit(["change-source", ev.index])
+                    elif ev.t == self.pulse.PulseEventTypeEnum.remove:
                         self.sig.emit(["remove-source", ev.index])
                     elif ev.t == self.pulse.PulseEventTypeEnum.new:
                         self.sig.emit(["new-source", ev.index])
-            #
-            pulse.event_mask_set('sink', 'source')
+                # client
+                elif ev.facility == pulse.event_facilities[2]:
+                    if ev.t == self.pulse.PulseEventTypeEnum.remove:
+                        self.sig.emit(["client-removed", ev.index])
+                    elif ev.t == self.pulse.PulseEventTypeEnum.new:
+                        self.sig.emit(["client-new", ev.index])
+                        
+            # pulse.event_mask_set('sink', 'source')
+            pulse.event_mask_set('sink', 'source', 'client')
+            # pulse.event_mask_set('all')
             pulse.event_callback_set(audio_events)
             # pulse.event_listen(timeout=10)
             pulse.event_listen()
