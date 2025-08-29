@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Version 0.9.61
+# Version 0.9.62
 
 from PyQt5.QtCore import (pyqtSlot,QProcess, QCoreApplication, QTimer, QModelIndex,QFileSystemWatcher,QEvent,QObject,QUrl,QFileInfo,QRect,QStorageInfo,QMimeData,QMimeDatabase,QFile,QThread,Qt,pyqtSignal,QSize,QMargins,QDir,QByteArray,QItemSelection,QItemSelectionModel,QPoint)
 from PyQt5.QtWidgets import (QStyleFactory,QTreeWidget,QTreeWidgetItem,QLayout,QHeaderView,QTreeView,QSpacerItem,QScrollArea,QTextEdit,QSizePolicy,qApp,QBoxLayout,QLabel,QPushButton,QDesktopWidget,QApplication,QDialog,QGridLayout,QMessageBox,QLineEdit,QTabWidget,QWidget,QGroupBox,QComboBox,QCheckBox,QProgressBar,QListView,QFileSystemModel,QItemDelegate,QStyle,QFileIconProvider,QAbstractItemView,QFormLayout,QAction,QMenu)
@@ -1001,6 +1001,7 @@ class MainWin(QWidget):
         if USE_TRASH and TRASH_MODULE_IMPORTED and USE_WATCHER == "gio":
             # needed to track continuous trashed items
             self.trash_items_keeps_in = 0
+            self.trash_items_empty = 0
             gio_dir = Gio.File.new_for_path(TRASH_PATH)
             self.monitor = gio_dir.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, None)
             # 
@@ -1405,15 +1406,32 @@ class MainWin(QWidget):
     
     def play_sound_restore(self):
         self.trash_items_keeps_in = 0
-        
+    
+    def play_sound_empty(self):
+        self.trash_items_empty = 0
+    
+    # # new
+    # def play_sound(self, _sound):
+        # thr = threading.Thread(target = self.on_play_sound(_sound))
+        # thr.start()
+    
+    # old
     def play_sound(self, _sound):
+    # def on_play_sound(self, _sound):
         if SOUND_PLAYER == 1:
             if USE_WATCHER == "gio":
-                if _sound == "trash_in.wav" or _sound == "trash_restore.wav" or _sound == "trash-empty.wav":
+                # if _sound == "trash_in.wav" or _sound == "trash_restore.wav" or _sound == "trash-empty.wav":
+                if _sound == "trash_in.wav" or _sound == "trash_restore.wav":
                     if self.trash_items_keeps_in == 0:
                         self.trash_items_keeps_in = 1
                         QTimer.singleShot(SINGLE_SHOT_RATE, self.play_sound_restore)
                     elif self.trash_items_keeps_in == 1:
+                        return
+                elif _sound == "trash-empty.wav":
+                    if self.trash_items_empty == 0:
+                        self.trash_items_empty = 1
+                        QTimer.singleShot(SINGLE_SHOT_RATE, self.play_sound_empty)
+                    elif self.trash_items_empty == 1:
                         return
             sound_full_path = os.path.join(curr_path, "sounds", _sound)
             QSound.play(sound_full_path)
