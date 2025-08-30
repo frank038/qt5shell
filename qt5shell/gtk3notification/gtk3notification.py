@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# V. 0.9.54
+# V. 0.9.64
 
 import os,sys,time
 import gi
@@ -158,6 +158,8 @@ class notificationWin(Gtk.Window):
         
         # app - summary - body : in second_box vertical
         if _summary:
+            if _summary[-1] == "\n":
+                _summary = _summary[0:-1]
             _lbl_summary = Gtk.Label(label="<b>"+_summary+"</b>")
             _lbl_summary.set_use_markup(True)
             _lbl_summary.set_halign(1)
@@ -170,6 +172,8 @@ class notificationWin(Gtk.Window):
             self.second_box.pack_start(_lbl_summary,True,True,self._pad)
         #
         if _body:
+            if _body[-1] == "\n":
+                _body = _body[0:-1]
             _lbl_body = Gtk.Label(label=_body)
             _lbl_body.set_halign(1)
             _lbl_body.set_use_markup(True)
@@ -308,13 +312,13 @@ class Notifier(Service.Object):
         if not dbus_to_python(appIcon):
             appIcon = ""
         if action_1:
-            if expireTimeout == -1:
-                expireTimeout = 10000
+            # if expireTimeout == -1:
+            expireTimeout = 10000
             self._qw(appName, summary, body, replacesId, action_1, hints, expireTimeout, appIcon)
         else:
             action_1 = []
-            if expireTimeout == -1:
-                expireTimeout = 6000
+            # if expireTimeout == -1:
+            expireTimeout = 6000
             self._qw(appName, summary, body, replacesId, action_1, hints, expireTimeout, appIcon)
         
         return replacesId
