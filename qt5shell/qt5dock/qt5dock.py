@@ -2770,13 +2770,25 @@ class SecondaryWin(QWidget):
         for el in _source_list:
             if el.index == self.client_mic_change:
                 _is_found = 1
-        if _is_found:
-            for el in self.client_mic[:]:
-                if el[0] == _idx:
+        # if _is_found:
+            # for el in self.client_mic[:]:
+                # if el[0] == _idx:
+                    # el.append(self.client_mic_change)
+                    # break
+        #
+        for el in self.client_mic[:]:
+            if el[0] == _idx:
+                if _is_found:
                     el.append(self.client_mic_change)
-                    break
+                else:
+                    self.clien_mic.remove(el)
+                break
+        #
         self.client_mic_change = None
         # print("CLIENT LIST: ", self.client_mic)
+        for el in self.client_mic:
+            if len(el) < 3:
+                self.client_mic.remove(el)
         if len(self.client_mic) > 0:
             # self.btn_mic.setStyleSheet("background-color: #75DB23;")
             iicon = QIcon("icons/audio-input-microphone-on.svg")
