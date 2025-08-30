@@ -2733,17 +2733,20 @@ class SecondaryWin(QWidget):
             self.on_list_audio(_list[1], 302)
             
     def on_new_client(self, _idx):
-        _client = self.pulse.client_info(_idx)
-        _client_idx = _client.index
-        _client_name = _client.name
-        # applications that use the mic: client_index, client_name, source_idx
-        self.client_mic.append([_client_idx,_client_name])
-        # print("CLIENT: {} - {}".format(_client_idx, _client_name))
-        #
-        if _client_idx != None:
-            _t = QTimer.singleShot(1000, lambda: self.on_add_client(_client_idx))
-            if _t:
-                _t.start()
+        try:
+            _client = self.pulse.client_info(_idx)
+            _client_idx = _client.index
+            _client_name = _client.name
+            # applications that use the mic: client_index, client_name, source_idx
+            self.client_mic.append([_client_idx,_client_name])
+            # print("CLIENT: {} - {}".format(_client_idx, _client_name))
+            #
+            if _client_idx != None:
+                _t = QTimer.singleShot(1000, lambda: self.on_add_client(_client_idx))
+                if _t:
+                    _t.start()
+        except:
+            pass
         
     def on_get_client_source(self, _idx):
         for el in self.pulse.source_list():
