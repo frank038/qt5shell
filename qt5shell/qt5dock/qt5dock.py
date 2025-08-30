@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.63
+# 0.9.64
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -998,8 +998,8 @@ class SecondaryWin(QWidget):
                 self.btn_mic.installEventFilter(self)
                 self.btn_mic.hide()
                 #
-                _icon = "audio-input-microphone"
                 iicon = None
+                # _icon = "audio-input-microphone"
                 # iicon = QIcon.fromTheme(_icon, QIcon("icons/audio-input-microphone.svg"))
                 iicon = QIcon("icons/audio-input-microphone-off.svg")
                 if iicon and not iicon.isNull():
@@ -2743,6 +2743,17 @@ class SecondaryWin(QWidget):
     def on_add_client(self, _idx=None):
         if _idx == None:
             return
+        #
+        for el in self.pulse.source_list():
+            if el.index == self.client_mic_change:
+                if el.name[-8:] == ".monitor":
+                    # remove the invalid entry
+                    for ell in self.client_mic[:]:
+                        if ell[0] == _idx:
+                            self.client_mic.remove(ell)
+                            break
+                    return
+        #
         for el in self.client_mic[:]:
             if el[0] == _idx:
                 el.append(self.client_mic_change)
