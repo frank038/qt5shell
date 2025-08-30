@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.64
+# 0.9.65
 
 from PyQt5.QtCore import (QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -1035,7 +1035,9 @@ class SecondaryWin(QWidget):
             #
             self._is_clipboard_shown = 0
             self.actual_clip = None
-            self.btn_clip.clicked.connect(self.on_clipboard)
+            # self.btn_clip.clicked.connect(self.on_clipboard)
+            self.clipw_is_shown = None
+            self.btn_clip.clicked.connect(self.on_winClipboard)
             self.btn_clip.setContextMenuPolicy(Qt.CustomContextMenu)
             self.btn_clip.customContextMenuRequested.connect(self.on_clipboard2)
             #
@@ -3263,185 +3265,193 @@ class SecondaryWin(QWidget):
             except:
                 pass
     
+    def on_winClipboard(self):
+        if self.clipw_is_shown is not None:
+            self.clipw_is_shown.close()
+            self.clipw_is_shown = None
+            return
+        clipw = winClipboard(self)
+        self.clipw_is_shown = clipw
+    
     def on_clipboard2(self, point):
         self.menu.exec_(self.sender().mapToGlobal(point))
         
-    def on_label_text(self, lbl, num, text):
-        lbl.setText("<b>{}</b> {}".format(num, text))
-        lbl.setAlignment(Qt.AlignCenter)
+    # def on_label_text(self, lbl, num, text):
+        # lbl.setText("<b>{}</b> {}".format(num, text))
+        # lbl.setAlignment(Qt.AlignCenter)
     
-    # the main clipboard window
-    def mainCLipWidget(self):
-        self.item_text_num = 0
-        self.item_image_num = 0
-        #
-        self.cwindow = QWidget()
-        self.cwindow.setWindowIcon(QIcon("icons/clipman.svg"))
-        self.cwindow.setContentsMargins(2,0,0,2)
-        self.cwindow.resize(CWINW, CWINH)
-        self.cwindow.setAttribute(Qt.WA_DeleteOnClose)
-        self.cwindow.setWindowTitle("qt5clipboard")
-        #
-        if CLIP_REMOVE_DECO == 1:
-            self.cwindow.setWindowFlags(Qt.CustomizeWindowHint | Qt.FramelessWindowHint | Qt.Tool)
-        #
-        self.cwindow.destroyed.connect(self._cw_destroied)
-        #
-        self.mainBox = QHBoxLayout()
-        self.mainBox.setContentsMargins(2,2,2,2)
-        self.cwindow.setLayout(self.mainBox)
-        #
-        ####### left
-        self.leftBox = QVBoxLayout()
-        self.mainBox.addLayout(self.leftBox)
-        #
-        self.historyLBL = QLabel()
-        self.on_label_text(self.historyLBL, 0, "in history")
-        self.leftBox.addWidget(self.historyLBL)
-        #
-        if STORE_IMAGES:
-            self.imageLBL = QLabel()
-            self.on_label_text(self.imageLBL, 0, "images")
-            self.leftBox.addWidget(self.imageLBL)
-        #
-        self.clearBTN = QPushButton("Empty history")
-        #
-        self.clearBTN.clicked.connect(self.on_clear_history)
-        self.leftBox.addWidget(self.clearBTN)
-        #
-        self.leftBox.addStretch()
-        #
-        self.closeBTN = QPushButton("Close")
-        #
-        self.closeBTN.clicked.connect(self.on_cwindow_close)
-        self.leftBox.addWidget(self.closeBTN)
-        ####### right
-        self.ctab = QTabWidget()
-        self.ctab.setMovable(False)
-        self.mainBox.addWidget(self.ctab)
-        self.ctab.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        #
-        self.textLW = QListWidget()
-        self.textLW.setSelectionMode(1)
-        self.textLW.setSpacing(2)
-        self.textLW.itemClicked.connect(self.on_item_clicked)
-        self.ctab.addTab(self.textLW, "Text")
-        # texts
-        self.actual_clip = None
-        list_items = sorted(CLIPS_DICT, reverse=True)
-        #
-        for iitem in list_items:
-            iitem_text = CLIPS_DICT[iitem][0]
-            self.on_add_item(iitem_text, iitem)
-        #
-        self.on_label_text(self.historyLBL, self.item_text_num, "in history")
-        # images
-        if STORE_IMAGES:
-            image_temp = os.listdir(images_path)
-            if image_temp:
-                for iimage in image_temp:
-                    iwidget = QWidget()
-                    ilayout = QVBoxLayout()
-                    ilayout.setContentsMargins(2,2,2,2)
-                    btn_layout = QHBoxLayout()
-                    btn_layout.setContentsMargins(0,0,0,0)
-                    iwidget.setLayout(ilayout)
-                    #
-                    image_scroll = QScrollArea()
-                    image_scroll.setWidgetResizable(True)
-                    pimage = QPixmap(os.path.join(images_path, iimage))
-                    limage = QLabel()
-                    limage.setPixmap(pimage)
-                    image_scroll.setWidget(limage)
-                    ilayout.addWidget(image_scroll)
-                    #
-                    apply_btn = QPushButton()
-                    apply_btn.setIcon(QIcon("icons/apply.png"))
-                    apply_btn.setToolTip("Copy this image")
-                    apply_btn.clicked.connect(self.on_apply_image)
-                    btn_layout.addWidget(apply_btn)
-                    #
-                    save_btn = QPushButton()
-                    save_btn.setIcon(QIcon("icons/save.png"))
-                    save_btn.setToolTip("Save this image")
-                    save_btn.clicked.connect(self.on_save_image)
-                    btn_layout.addWidget(save_btn)
-                    #
-                    delete_btn = QPushButton()
-                    delete_btn.setIcon(QIcon("icons/remove.png"))
-                    delete_btn.setToolTip("Delete this image")
-                    delete_btn.clicked.connect(self.on_delete_image)
-                    btn_layout.addWidget(delete_btn)
-                    #
-                    ilayout.addLayout(btn_layout)
-                    #
-                    iwidget.iimage = iimage
-                    iwidget.pimage = pimage
-                    self.ctab.insertTab(1, iwidget, "Image")
-                    #
-                    self.item_image_num += 1
-            #
-            if self.item_image_num == 1:
-                self.on_label_text(self.imageLBL, self.item_image_num, "image")
-            else:
-                self.on_label_text(self.imageLBL, self.item_image_num, "images")
-        #
-        self.cwindow.show()
-        self._is_clipboard_shown = 1
+    # # the main clipboard window
+    # def mainCLipWidget(self):
+        # self.item_text_num = 0
+        # self.item_image_num = 0
+        # #
+        # self.cwindow = QWidget()
+        # self.cwindow.setWindowIcon(QIcon("icons/clipman.svg"))
+        # self.cwindow.setContentsMargins(2,0,0,2)
+        # self.cwindow.resize(CWINW, CWINH)
+        # self.cwindow.setAttribute(Qt.WA_DeleteOnClose)
+        # self.cwindow.setWindowTitle("qt5clipboard")
+        # #
+        # if CLIP_REMOVE_DECO == 1:
+            # self.cwindow.setWindowFlags(Qt.CustomizeWindowHint | Qt.FramelessWindowHint | Qt.Tool)
+        # #
+        # self.cwindow.destroyed.connect(self._cw_destroied)
+        # #
+        # self.mainBox = QHBoxLayout()
+        # self.mainBox.setContentsMargins(2,2,2,2)
+        # self.cwindow.setLayout(self.mainBox)
+        # #
+        # ####### left
+        # self.leftBox = QVBoxLayout()
+        # self.mainBox.addLayout(self.leftBox)
+        # #
+        # self.historyLBL = QLabel()
+        # self.on_label_text(self.historyLBL, 0, "in history")
+        # self.leftBox.addWidget(self.historyLBL)
+        # #
+        # if STORE_IMAGES:
+            # self.imageLBL = QLabel()
+            # self.on_label_text(self.imageLBL, 0, "images")
+            # self.leftBox.addWidget(self.imageLBL)
+        # #
+        # self.clearBTN = QPushButton("Empty history")
+        # #
+        # self.clearBTN.clicked.connect(self.on_clear_history)
+        # self.leftBox.addWidget(self.clearBTN)
+        # #
+        # self.leftBox.addStretch()
+        # #
+        # self.closeBTN = QPushButton("Close")
+        # #
+        # self.closeBTN.clicked.connect(self.on_cwindow_close)
+        # self.leftBox.addWidget(self.closeBTN)
+        # ####### right
+        # self.ctab = QTabWidget()
+        # self.ctab.setMovable(False)
+        # self.mainBox.addWidget(self.ctab)
+        # self.ctab.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # #
+        # self.textLW = QListWidget()
+        # self.textLW.setSelectionMode(1)
+        # self.textLW.setSpacing(2)
+        # self.textLW.itemClicked.connect(self.on_item_clicked)
+        # self.ctab.addTab(self.textLW, "Text")
+        # # texts
+        # self.actual_clip = None
+        # list_items = sorted(CLIPS_DICT, reverse=True)
+        # #
+        # for iitem in list_items:
+            # iitem_text = CLIPS_DICT[iitem][0]
+            # self.on_add_item(iitem_text, iitem)
+        # #
+        # self.on_label_text(self.historyLBL, self.item_text_num, "in history")
+        # # images
+        # if STORE_IMAGES:
+            # image_temp = os.listdir(images_path)
+            # if image_temp:
+                # for iimage in image_temp:
+                    # iwidget = QWidget()
+                    # ilayout = QVBoxLayout()
+                    # ilayout.setContentsMargins(2,2,2,2)
+                    # btn_layout = QHBoxLayout()
+                    # btn_layout.setContentsMargins(0,0,0,0)
+                    # iwidget.setLayout(ilayout)
+                    # #
+                    # image_scroll = QScrollArea()
+                    # image_scroll.setWidgetResizable(True)
+                    # pimage = QPixmap(os.path.join(images_path, iimage))
+                    # limage = QLabel()
+                    # limage.setPixmap(pimage)
+                    # image_scroll.setWidget(limage)
+                    # ilayout.addWidget(image_scroll)
+                    # #
+                    # apply_btn = QPushButton()
+                    # apply_btn.setIcon(QIcon("icons/apply.png"))
+                    # apply_btn.setToolTip("Copy this image")
+                    # apply_btn.clicked.connect(self.on_apply_image)
+                    # btn_layout.addWidget(apply_btn)
+                    # #
+                    # save_btn = QPushButton()
+                    # save_btn.setIcon(QIcon("icons/save.png"))
+                    # save_btn.setToolTip("Save this image")
+                    # save_btn.clicked.connect(self.on_save_image)
+                    # btn_layout.addWidget(save_btn)
+                    # #
+                    # delete_btn = QPushButton()
+                    # delete_btn.setIcon(QIcon("icons/remove.png"))
+                    # delete_btn.setToolTip("Delete this image")
+                    # delete_btn.clicked.connect(self.on_delete_image)
+                    # btn_layout.addWidget(delete_btn)
+                    # #
+                    # ilayout.addLayout(btn_layout)
+                    # #
+                    # iwidget.iimage = iimage
+                    # iwidget.pimage = pimage
+                    # self.ctab.insertTab(1, iwidget, "Image")
+                    # #
+                    # self.item_image_num += 1
+            # #
+            # if self.item_image_num == 1:
+                # self.on_label_text(self.imageLBL, self.item_image_num, "image")
+            # else:
+                # self.on_label_text(self.imageLBL, self.item_image_num, "images")
+        # #
+        # self.cwindow.show()
+        # self._is_clipboard_shown = 1
     
-    def _cw_destroied(self):
-        self._is_clipboard_shown = 0
+    # def _cw_destroied(self):
+        # self._is_clipboard_shown = 0
     
-    def on_cwindow_close(self):
-        new_w = self.cwindow.size().width()
-        new_h = self.cwindow.size().height()
-        global CWINW
-        global CWINH
-        #
-        if new_w != int(CWINW) or new_h != int(CWINH):
-            try:
-                ifile = open("clipprogsize.cfg", "w")
-                ifile.write("{};{}".format(new_w, new_h))
-                ifile.close()
-                CWINW = new_w
-                CWINH = new_h
-            except:
-                pass
-        #
-        self.cwindow.close()
-        self._is_clipboard_shown = 0
+    # def on_cwindow_close(self):
+        # new_w = self.cwindow.size().width()
+        # new_h = self.cwindow.size().height()
+        # global CWINW
+        # global CWINH
+        # #
+        # if new_w != int(CWINW) or new_h != int(CWINH):
+            # try:
+                # ifile = open("clipprogsize.cfg", "w")
+                # ifile.write("{};{}".format(new_w, new_h))
+                # ifile.close()
+                # CWINW = new_w
+                # CWINH = new_h
+            # except:
+                # pass
+        # #
+        # self.cwindow.close()
+        # self._is_clipboard_shown = 0
     
-    #
-    def on_add_item(self, text, idx):
-        lw = QListWidgetItem()
-        widgetItem = QWidget()
-        widgetTXT =  QLabel(text=text)
-        #
-        previewBTN = QPushButton()
-        previewBTN.setIcon(QIcon("icons/preview.png"))
-        previewBTN.clicked.connect(lambda:self.on_preview(idx))
-        previewBTN.setToolTip("Preview")
-        #
-        removeBTN = QPushButton()
-        removeBTN.setIcon(QIcon("icons/list-remove.png"))
-        removeBTN.clicked.connect(lambda:self.on_delete_item(idx))
-        removeBTN.setToolTip("Delete this item")
-        #
-        widgetItemL = QHBoxLayout()
-        widgetItemL.addWidget(widgetTXT)
-        widgetItemL.addStretch()
-        widgetItemL.addWidget(previewBTN)
-        widgetItemL.addWidget(removeBTN)
-        #
-        widgetItem.setLayout(widgetItemL)  
-        lw.setSizeHint(widgetItem.sizeHint())
-        #
-        lw.idx = idx
-        #
-        self.textLW.addItem(lw)
-        self.textLW.setItemWidget(lw, widgetItem)
-        #
-        self.item_text_num += 1
+    # #
+    # def on_add_item(self, text, idx):
+        # lw = QListWidgetItem()
+        # widgetItem = QWidget()
+        # widgetTXT =  QLabel(text=text)
+        # #
+        # previewBTN = QPushButton()
+        # previewBTN.setIcon(QIcon("icons/preview.png"))
+        # previewBTN.clicked.connect(lambda:self.on_preview(idx))
+        # previewBTN.setToolTip("Preview")
+        # #
+        # removeBTN = QPushButton()
+        # removeBTN.setIcon(QIcon("icons/list-remove.png"))
+        # removeBTN.clicked.connect(lambda:self.on_delete_item(idx))
+        # removeBTN.setToolTip("Delete this item")
+        # #
+        # widgetItemL = QHBoxLayout()
+        # widgetItemL.addWidget(widgetTXT)
+        # widgetItemL.addStretch()
+        # widgetItemL.addWidget(previewBTN)
+        # widgetItemL.addWidget(removeBTN)
+        # #
+        # widgetItem.setLayout(widgetItemL)  
+        # lw.setSizeHint(widgetItem.sizeHint())
+        # #
+        # lw.idx = idx
+        # #
+        # self.textLW.addItem(lw)
+        # self.textLW.setItemWidget(lw, widgetItem)
+        # #
+        # self.item_text_num += 1
     
     def on_preview(self, idx):
         self.dialogp = QDialog()
@@ -3476,7 +3486,6 @@ class SecondaryWin(QWidget):
         #
         self.dialogp.show()
     
-    
     def on_close_preview(self):
         new_w = self.dialogp.size().width()
         new_h = self.dialogp.size().height()
@@ -3493,147 +3502,147 @@ class SecondaryWin(QWidget):
                 MyDialog("Error", str(E), self.cwindow)
         self.dialogp.close()
     
-    # text
-    def on_delete_item(self, idx):
-        time.sleep(0.1)
-        num_items = self.textLW.count()
-        itemW = None
-        _item_num = None
-        #
-        for i in range(num_items):
-            if self.textLW.item(i).idx == idx:
-                itemW = self.textLW.item(i)
-                _item_num = i
-                break
-        if itemW:
-            # remove the file
-            try:
-                os.remove(os.path.join(clips_path, str(itemW.idx)))
-            except Exception as E:
-                MyDialog("Error", str(E), self.cwindow)
-                return
-            #
-            del CLIPS_DICT[str(itemW.idx)]
-            self.textLW.takeItem(self.textLW.row(itemW))
-            del itemW
-            #
-            self.item_text_num -= 1
-            self.on_label_text(self.historyLBL, self.item_text_num, "in history")
-            #
-            if _item_num != 0:
-                if CLIPS_DICT:
-                    self.actual_clip = CLIPS_DICT[self.textLW.item(0).idx][0]
+    # # text
+    # def on_delete_item(self, idx):
+        # time.sleep(0.1)
+        # num_items = self.textLW.count()
+        # itemW = None
+        # _item_num = None
+        # #
+        # for i in range(num_items):
+            # if self.textLW.item(i).idx == idx:
+                # itemW = self.textLW.item(i)
+                # _item_num = i
+                # break
+        # if itemW:
+            # # remove the file
+            # try:
+                # os.remove(os.path.join(clips_path, str(itemW.idx)))
+            # except Exception as E:
+                # MyDialog("Error", str(E), self.cwindow)
+                # return
+            # #
+            # del CLIPS_DICT[str(itemW.idx)]
+            # self.textLW.takeItem(self.textLW.row(itemW))
+            # del itemW
+            # #
+            # self.item_text_num -= 1
+            # self.on_label_text(self.historyLBL, self.item_text_num, "in history")
+            # #
+            # if _item_num != 0:
+                # if CLIPS_DICT:
+                    # self.actual_clip = CLIPS_DICT[self.textLW.item(0).idx][0]
     
-    def on_item_clicked(self, iitem):
-        clip_text = ""
-        ff = open(os.path.join(clips_path, iitem.idx), "r")
-        clip_text = ff.read()
-        ff.close()
-        # 
-        if clip_text == self.actual_clip:
-            app.clipboard().setText(clip_text)
-        else:
-            # remove the clip file
-            try:
-                os.remove(os.path.join(clips_path, str(iitem.idx)))
-            except Exception as E:
-                MyDialog("Error", str(E), self.cwindow)
-                return
-            self.actual_clip = clip_text
-            self.textLW.takeItem(self.textLW.row(iitem))
-            del CLIPS_DICT[iitem.idx]
-            del iitem
-            app.clipboard().setText(clip_text)
-            ####
-            idx = time_now = str(int(time.time()))
-            i = 0
-            while os.path.exists(os.path.join(clips_path, time_now)):
-                sleep(0.1)
-                time_now = str(int(time.time()))
-                i += 1
-                if i == 10:
-                    break
-                return
-            #
-            try:
-                ff = open(os.path.join(clips_path, idx), "w")
-                ff.write(clip_text)
-                ff.close()
-            except Exception as E:
-                MyDialog("Error", str(E), self.cwindow)
-                return
-            #
-            if len(clip_text) > int(CHAR_PREVIEW):
-                text_prev = clip_text[0:int(CHAR_PREVIEW)]+" [...]"
-                CLIPS_DICT[str(idx)] = [text_prev]
-            else:
-                CLIPS_DICT[str(idx)] = [clip_text]
-            ####
-        self.cwindow.close()
-        self._is_clipboard_shown = 0
+    # def on_item_clicked(self, iitem):
+        # clip_text = ""
+        # ff = open(os.path.join(clips_path, iitem.idx), "r")
+        # clip_text = ff.read()
+        # ff.close()
+        # # 
+        # if clip_text == self.actual_clip:
+            # app.clipboard().setText(clip_text)
+        # else:
+            # # remove the clip file
+            # try:
+                # os.remove(os.path.join(clips_path, str(iitem.idx)))
+            # except Exception as E:
+                # MyDialog("Error", str(E), self.cwindow)
+                # return
+            # self.actual_clip = clip_text
+            # self.textLW.takeItem(self.textLW.row(iitem))
+            # del CLIPS_DICT[iitem.idx]
+            # del iitem
+            # app.clipboard().setText(clip_text)
+            # ####
+            # idx = time_now = str(int(time.time()))
+            # i = 0
+            # while os.path.exists(os.path.join(clips_path, time_now)):
+                # sleep(0.1)
+                # time_now = str(int(time.time()))
+                # i += 1
+                # if i == 10:
+                    # break
+                # return
+            # #
+            # try:
+                # ff = open(os.path.join(clips_path, idx), "w")
+                # ff.write(clip_text)
+                # ff.close()
+            # except Exception as E:
+                # MyDialog("Error", str(E), self.cwindow)
+                # return
+            # #
+            # if len(clip_text) > int(CHAR_PREVIEW):
+                # text_prev = clip_text[0:int(CHAR_PREVIEW)]+" [...]"
+                # CLIPS_DICT[str(idx)] = [text_prev]
+            # else:
+                # CLIPS_DICT[str(idx)] = [clip_text]
+            # ####
+        # self.cwindow.close()
+        # self._is_clipboard_shown = 0
         
-    def on_apply_image(self):
-        try:
-            curr_idx = self.ctab.currentIndex()
-            pimage = self.ctab.widget(curr_idx).pimage
-            app.clipboard().setPixmap(pimage)
-        except Exception as E:
-            MyDialog("Error", str(E), self.cwindow)
+    # def on_apply_image(self):
+        # try:
+            # curr_idx = self.ctab.currentIndex()
+            # pimage = self.ctab.widget(curr_idx).pimage
+            # app.clipboard().setPixmap(pimage)
+        # except Exception as E:
+            # MyDialog("Error", str(E), self.cwindow)
     
-    def on_save_image(self):
-        try:
-            curr_idx = self.ctab.currentIndex()
-            iimage = self.ctab.widget(curr_idx).iimage
-            iname = "Image_"+str(int(time.time()))
-            shutil.copy(os.path.join(images_path, iimage), os.path.join( os.path.expanduser("~"), iname ) )
-            MyDialog("Info", "\n{}\nsaved in your home folder.".format(iname), self.cwindow)
-        except Exception as E:
-            MyDialog("Error", str(E), self.cwindow)
+    # def on_save_image(self):
+        # try:
+            # curr_idx = self.ctab.currentIndex()
+            # iimage = self.ctab.widget(curr_idx).iimage
+            # iname = "Image_"+str(int(time.time()))
+            # shutil.copy(os.path.join(images_path, iimage), os.path.join( os.path.expanduser("~"), iname ) )
+            # MyDialog("Info", "\n{}\nsaved in your home folder.".format(iname), self.cwindow)
+        # except Exception as E:
+            # MyDialog("Error", str(E), self.cwindow)
     
-    def on_delete_image(self):
-        time.sleep(0.1)
-        try:
-            curr_idx = self.ctab.currentIndex()
-            twidget = self.ctab.widget(curr_idx)
-            os.remove(os.path.join(images_path, twidget.iimage))
-            self.ctab.removeTab(curr_idx)
-            twidget.deleteLater()
-            self.item_image_num -= 1
-            if self.item_image_num == 1:
-                self.on_label_text(self.imageLBL, self.item_image_num, "image")
-            else:
-                self.on_label_text(self.imageLBL, self.item_image_num, "images")
-        except Exception as E:
-            MyDialog("Error", str(E), self.cwindow)
+    # def on_delete_image(self):
+        # time.sleep(0.1)
+        # try:
+            # curr_idx = self.ctab.currentIndex()
+            # twidget = self.ctab.widget(curr_idx)
+            # os.remove(os.path.join(images_path, twidget.iimage))
+            # self.ctab.removeTab(curr_idx)
+            # twidget.deleteLater()
+            # self.item_image_num -= 1
+            # if self.item_image_num == 1:
+                # self.on_label_text(self.imageLBL, self.item_image_num, "image")
+            # else:
+                # self.on_label_text(self.imageLBL, self.item_image_num, "images")
+        # except Exception as E:
+            # MyDialog("Error", str(E), self.cwindow)
     
-    def on_clear_history(self):
-        ret = MyDialog("Question", "Remove all the items?", self.cwindow)
-        if ret.retval == QMessageBox.Yes:
-            global CLIPS_DICT
-            try:
-                clips_temp = os.listdir(clips_path)
-                if clips_temp:
-                    for iitem in clips_temp:
-                        os.remove(os.path.join(clips_path, iitem))
-                        del CLIPS_DICT[iitem]
-                #
-                self.textLW.clear()
-            except Exception as E:
-                MyDialog("Error", str(E), self.cwindow)
-            try:
-                #
-                images_temp = os.listdir(images_path)
-                if images_temp:
-                    for iitem in images_temp:
-                        os.remove(os.path.join(images_path, iitem))
-            except Exception as E:
-                MyDialog("Error", str(E), self.cwindow)
-            #
-            self.textLW.clear()
-            self.actual_clip = None
-            #
-            self.cwindow.close()
-            self._is_clipboard_shown = 0
+    # def on_clear_history(self):
+        # ret = MyDialog("Question", "Remove all the items?", self.cwindow)
+        # if ret.retval == QMessageBox.Yes:
+            # global CLIPS_DICT
+            # try:
+                # clips_temp = os.listdir(clips_path)
+                # if clips_temp:
+                    # for iitem in clips_temp:
+                        # os.remove(os.path.join(clips_path, iitem))
+                        # del CLIPS_DICT[iitem]
+                # #
+                # self.textLW.clear()
+            # except Exception as E:
+                # MyDialog("Error", str(E), self.cwindow)
+            # try:
+                # #
+                # images_temp = os.listdir(images_path)
+                # if images_temp:
+                    # for iitem in images_temp:
+                        # os.remove(os.path.join(images_path, iitem))
+            # except Exception as E:
+                # MyDialog("Error", str(E), self.cwindow)
+            # #
+            # self.textLW.clear()
+            # self.actual_clip = None
+            # #
+            # self.cwindow.close()
+            # self._is_clipboard_shown = 0
 
 ############# clipboard end ############## 
     
@@ -4873,6 +4882,356 @@ class showDialog(QDialog):
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+
+# clipboard
+class winClipboard(QWidget):
+    def __init__(self, parent=None):
+        super(winClipboard, self).__init__(parent)
+        self.window = parent
+        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setWindowTitle("qt5clipboard-1")
+        ########
+        self.mainCLipWidget()
+        #
+        self.updateGeometry()
+        #
+        sx = WINW - clipboard_width - menu_padx
+        #
+        if dock_position == 1:
+            sy = WINH - dock_height - self.geometry().height() - menu_pady
+        elif dock_position == 0:
+            sy = dock_height + menu_pady
+        # self.move(sx,sy)
+        self.setGeometry(sx,sy,clipboard_width,clipboard_height)
+        #
+        if LOST_FOCUS_CLOSE == 1:
+            self.installEventFilter(self)
+        #
+        self.show()
+    
+    # the main clipboard window
+    def mainCLipWidget(self):
+        self.item_text_num = 0
+        self.item_image_num = 0
+        #
+        self.cwindow = self
+        self.cwindow.setContentsMargins(2,0,0,2)
+        self.cwindow.resize(clipboard_width, clipboard_height)
+        self.cwindow.setAttribute(Qt.WA_DeleteOnClose)
+        #
+        # self.cwindow.destroyed.connect(self._cw_destroied)
+        #
+        self.mainBox = QHBoxLayout()
+        self.mainBox.setContentsMargins(2,2,2,2)
+        self.cwindow.setLayout(self.mainBox)
+        #
+        ####### left
+        self.leftBox = QVBoxLayout()
+        self.mainBox.addLayout(self.leftBox)
+        #
+        self.historyLBL = QLabel()
+        self.on_label_text(self.historyLBL, 0, "in history")
+        self.leftBox.addWidget(self.historyLBL)
+        #
+        if STORE_IMAGES:
+            self.imageLBL = QLabel()
+            self.on_label_text(self.imageLBL, 0, "images")
+            self.leftBox.addWidget(self.imageLBL)
+        #
+        self.clearBTN = QPushButton("Empty history")
+        #
+        self.clearBTN.clicked.connect(self.on_clear_history)
+        self.leftBox.addWidget(self.clearBTN)
+        #
+        self.leftBox.addStretch()
+        #
+        # self.closeBTN = QPushButton("Close")
+        # self.closeBTN.clicked.connect(self.on_cwindow_close)
+        # self.leftBox.addWidget(self.closeBTN)
+        ####### right
+        self.ctab = QTabWidget()
+        self.ctab.setMovable(False)
+        self.mainBox.addWidget(self.ctab)
+        self.ctab.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        #
+        self.textLW = QListWidget()
+        self.textLW.setSelectionMode(1)
+        self.textLW.setSpacing(2)
+        self.textLW.itemClicked.connect(self.on_item_clicked)
+        self.ctab.addTab(self.textLW, "Text")
+        # texts
+        self.actual_clip = None
+        list_items = sorted(CLIPS_DICT, reverse=True)
+        #
+        for iitem in list_items:
+            iitem_text = CLIPS_DICT[iitem][0]
+            self.on_add_item(iitem_text, iitem)
+        #
+        self.on_label_text(self.historyLBL, self.item_text_num, "in history")
+        # images
+        if STORE_IMAGES:
+            image_temp = os.listdir(images_path)
+            if image_temp:
+                for iimage in image_temp:
+                    iwidget = QWidget()
+                    ilayout = QVBoxLayout()
+                    ilayout.setContentsMargins(2,2,2,2)
+                    btn_layout = QHBoxLayout()
+                    btn_layout.setContentsMargins(0,0,0,0)
+                    iwidget.setLayout(ilayout)
+                    #
+                    image_scroll = QScrollArea()
+                    image_scroll.setWidgetResizable(True)
+                    pimage = QPixmap(os.path.join(images_path, iimage))
+                    limage = QLabel()
+                    limage.setPixmap(pimage)
+                    image_scroll.setWidget(limage)
+                    ilayout.addWidget(image_scroll)
+                    #
+                    apply_btn = QPushButton()
+                    apply_btn.setIcon(QIcon("icons/apply.png"))
+                    apply_btn.setToolTip("Copy this image")
+                    apply_btn.clicked.connect(self.on_apply_image)
+                    btn_layout.addWidget(apply_btn)
+                    #
+                    save_btn = QPushButton()
+                    save_btn.setIcon(QIcon("icons/save.png"))
+                    save_btn.setToolTip("Save this image")
+                    save_btn.clicked.connect(self.on_save_image)
+                    btn_layout.addWidget(save_btn)
+                    #
+                    delete_btn = QPushButton()
+                    delete_btn.setIcon(QIcon("icons/remove.png"))
+                    delete_btn.setToolTip("Delete this image")
+                    delete_btn.clicked.connect(self.on_delete_image)
+                    btn_layout.addWidget(delete_btn)
+                    #
+                    ilayout.addLayout(btn_layout)
+                    #
+                    iwidget.iimage = iimage
+                    iwidget.pimage = pimage
+                    self.ctab.insertTab(1, iwidget, "Image")
+                    #
+                    self.item_image_num += 1
+            #
+            if self.item_image_num == 1:
+                self.on_label_text(self.imageLBL, self.item_image_num, "image")
+            else:
+                self.on_label_text(self.imageLBL, self.item_image_num, "images")
+        #
+        self.cwindow.show()
+    
+    def on_label_text(self, lbl, num, text):
+        lbl.setText("<b>{}</b> {}".format(num, text))
+        lbl.setAlignment(Qt.AlignCenter)
+    
+    # def _cw_destroied(self):
+        # self._is_clipboard_shown = 0
+    
+    # def on_cwindow_close(self):
+        # new_w = self.cwindow.size().width()
+        # new_h = self.cwindow.size().height()
+        # global CWINW
+        # global CWINH
+        # #
+        # if new_w != int(CWINW) or new_h != int(CWINH):
+            # try:
+                # ifile = open("clipprogsize.cfg", "w")
+                # ifile.write("{};{}".format(new_w, new_h))
+                # ifile.close()
+                # CWINW = new_w
+                # CWINH = new_h
+            # except:
+                # pass
+        # #
+        # self.cwindow.close()
+    
+    #
+    def on_add_item(self, text, idx):
+        lw = QListWidgetItem()
+        widgetItem = QWidget()
+        widgetTXT =  QLabel(text=text)
+        #
+        previewBTN = QPushButton()
+        previewBTN.setIcon(QIcon("icons/preview.png"))
+        previewBTN.clicked.connect(lambda:self.window.on_preview(idx))
+        previewBTN.setToolTip("Preview")
+        #
+        removeBTN = QPushButton()
+        removeBTN.setIcon(QIcon("icons/list-remove.png"))
+        removeBTN.clicked.connect(lambda:self.on_delete_item(idx))
+        removeBTN.setToolTip("Delete this item")
+        #
+        widgetItemL = QHBoxLayout()
+        widgetItemL.addWidget(widgetTXT)
+        widgetItemL.addStretch()
+        widgetItemL.addWidget(previewBTN)
+        widgetItemL.addWidget(removeBTN)
+        #
+        widgetItem.setLayout(widgetItemL)  
+        lw.setSizeHint(widgetItem.sizeHint())
+        #
+        lw.idx = idx
+        #
+        self.textLW.addItem(lw)
+        self.textLW.setItemWidget(lw, widgetItem)
+        #
+        self.item_text_num += 1
+    
+    # text
+    def on_delete_item(self, idx):
+        time.sleep(0.1)
+        num_items = self.textLW.count()
+        itemW = None
+        _item_num = None
+        #
+        for i in range(num_items):
+            if self.textLW.item(i).idx == idx:
+                itemW = self.textLW.item(i)
+                _item_num = i
+                break
+        if itemW:
+            # remove the file
+            try:
+                os.remove(os.path.join(clips_path, str(itemW.idx)))
+            except Exception as E:
+                # MyDialog("Error", str(E), self.window)
+                return
+            #
+            del CLIPS_DICT[str(itemW.idx)]
+            self.textLW.takeItem(self.textLW.row(itemW))
+            del itemW
+            #
+            self.item_text_num -= 1
+            self.on_label_text(self.historyLBL, self.item_text_num, "in history")
+            #
+            if _item_num != 0:
+                if CLIPS_DICT:
+                    self.actual_clip = CLIPS_DICT[self.textLW.item(0).idx][0]
+    
+    def on_item_clicked(self, iitem):
+        clip_text = ""
+        ff = open(os.path.join(clips_path, iitem.idx), "r")
+        clip_text = ff.read()
+        ff.close()
+        # 
+        if clip_text == self.actual_clip:
+            app.clipboard().setText(clip_text)
+        else:
+            # remove the clip file
+            try:
+                os.remove(os.path.join(clips_path, str(iitem.idx)))
+            except Exception as E:
+                # MyDialog("Error", str(E), self.window)
+                return
+            self.actual_clip = clip_text
+            self.textLW.takeItem(self.textLW.row(iitem))
+            del CLIPS_DICT[iitem.idx]
+            del iitem
+            app.clipboard().setText(clip_text)
+            ####
+            idx = time_now = str(int(time.time()))
+            i = 0
+            while os.path.exists(os.path.join(clips_path, time_now)):
+                # sleep(0.1)
+                time_now = str(int(time.time()))
+                i += 1
+                if i == 10:
+                    break
+            #
+            try:
+                ff = open(os.path.join(clips_path, idx), "w")
+                ff.write(clip_text)
+                ff.close()
+            except Exception as E:
+                # MyDialog("Error", str(E), self)
+                return
+            #
+            if len(clip_text) > int(CHAR_PREVIEW):
+                text_prev = clip_text[0:int(CHAR_PREVIEW)]+" [...]"
+                CLIPS_DICT[str(idx)] = [text_prev]
+            else:
+                CLIPS_DICT[str(idx)] = [clip_text]
+            ####
+        self.close()
+        self.window.clipw_is_shown = None
+        
+    def on_apply_image(self):
+        try:
+            curr_idx = self.ctab.currentIndex()
+            pimage = self.ctab.widget(curr_idx).pimage
+            app.clipboard().setPixmap(pimage)
+        except Exception as E:
+            pass
+            # MyDialog("Error", str(E), self.window)
+    
+    def on_save_image(self):
+        try:
+            curr_idx = self.ctab.currentIndex()
+            iimage = self.ctab.widget(curr_idx).iimage
+            iname = "Image_"+str(int(time.time()))
+            shutil.copy(os.path.join(images_path, iimage), os.path.join( os.path.expanduser("~"), iname ) )
+            # MyDialog("Info", "\n{}\nsaved in your home folder.".format(iname), self.cwindow)
+        except Exception as E:
+            # MyDialog("Error", str(E), self.window)
+            pass
+    
+    def on_delete_image(self):
+        time.sleep(0.1)
+        try:
+            curr_idx = self.ctab.currentIndex()
+            twidget = self.ctab.widget(curr_idx)
+            os.remove(os.path.join(images_path, twidget.iimage))
+            self.ctab.removeTab(curr_idx)
+            twidget.deleteLater()
+            self.item_image_num -= 1
+            if self.item_image_num == 1:
+                self.on_label_text(self.imageLBL, self.item_image_num, "image")
+            else:
+                self.on_label_text(self.imageLBL, self.item_image_num, "images")
+        except Exception as E:
+            # MyDialog("Error", str(E), self.window)
+            pass
+    
+    def on_clear_history(self):
+        # ret = MyDialog("Question", "Remove all the items?", self.cwindow)
+        # if ret.retval == QMessageBox.Yes:
+        if 1:
+            global CLIPS_DICT
+            try:
+                clips_temp = os.listdir(clips_path)
+                if clips_temp:
+                    for iitem in clips_temp:
+                        os.remove(os.path.join(clips_path, iitem))
+                        del CLIPS_DICT[iitem]
+                #
+                self.textLW.clear()
+            except Exception as E:
+                # MyDialog("Error", str(E), self.window)
+                pass
+            try:
+                #
+                images_temp = os.listdir(images_path)
+                if images_temp:
+                    for iitem in images_temp:
+                        os.remove(os.path.join(images_path, iitem))
+            except Exception as E:
+                # MyDialog("Error", str(E), self.window)
+                pass
+            #
+            self.textLW.clear()
+            self.actual_clip = None
+            #
+            self.cwindow.close()
+    
+    def eventFilter(self, object, event):
+        if event.type() == QEvent.WindowDeactivate:
+            if self.window.clipw_is_shown:
+                self.window.clipw_is_shown.close()
+                self.window.clipw_is_shown = None
+                return True
+        return False
 
 
 # menu
