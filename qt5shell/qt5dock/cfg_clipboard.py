@@ -14,3 +14,6 @@ HISTORY_SIZE_IMAGES=10
 IMAGE_FORMAT="tiff"
 # rimove decoration from the clipboard window: 0 no - 1 yes
 CLIP_REMOVE_DECO=0
+# clipboard width and height
+clipboard_width=1000
+clipboard_height=600
