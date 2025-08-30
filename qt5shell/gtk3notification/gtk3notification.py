@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# V. 0.9.64
+# V. 0.9.65
 
 import os,sys,time
 import gi
@@ -62,7 +62,7 @@ class mainProg():
         # # 0 no - 1 yes - 2 yes/with external player
         # self.not_sounds = 0 # deactivated
         # do not disturbe mode
-        self.not_dnd = DO_NOT_DISTURBE
+        self.not_dnd = DO_NOT_DISTURB
         #
         self.qt5dock_location = QTDOCK_FOLDER
         # bottom screen limin
@@ -114,6 +114,9 @@ class notificationWin(Gtk.Window):
         _actions = args[8]
         _replaceid = args[9]
         
+        if _pixbuf == None:
+            _pixbuf = pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(os.path.join(_curr_dir,"icons/not_icon.png"),NOT_ICON_SIZE,NOT_ICON_SIZE)
+                
         self.__y = _y
         self.not_width = self._notifier.not_width
         self.not_height = self._notifier.not_height
@@ -142,47 +145,51 @@ class notificationWin(Gtk.Window):
         self.set_vexpand(True)
         self.set_size_request(self.not_width, self.not_height)
         
+        # main box - vertical
         self.main_box = Gtk.Box.new(1,0)
         self.add(self.main_box)
         
+        # icon and summary/body/actions and close button
         self.btn_icon_box = Gtk.Box.new(0,0)
         # self.btn_icon_box.set_halign(2)
         self.main_box.pack_start(self.btn_icon_box,True,True,0)
         
         if _pixbuf:
             _img = Gtk.Image.new_from_pixbuf(_pixbuf)
-            self.btn_icon_box.pack_start(_img,False,True,4)
+            self.btn_icon_box.pack_start(_img,True,True,4)
         
+        # box for summary and body
         self.second_box = Gtk.Box.new(1,0)
         self.btn_icon_box.pack_start(self.second_box,True,True,0)
         
         # app - summary - body : in second_box vertical
         if _summary:
-            if _summary[-1] == "\n":
-                _summary = _summary[0:-1]
+            # if _summary[-1] == "\n":
+                # _summary = _summary[0:-1]
             _lbl_summary = Gtk.Label(label="<b>"+_summary+"</b>")
             _lbl_summary.set_use_markup(True)
+            # _lbl_summary.set_halign(1)
             _lbl_summary.set_halign(1)
             _lbl_summary.set_line_wrap(True)
             _lbl_summary.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
-            if _body:
-                _lbl_summary.set_valign(2)
-            else:
-                _lbl_summary.set_valign(3)
+            # if _body:
+                # _lbl_summary.set_valign(2)
+            # else:
+                # _lbl_summary.set_valign(3)
             self.second_box.pack_start(_lbl_summary,True,True,self._pad)
         #
         if _body:
-            if _body[-1] == "\n":
-                _body = _body[0:-1]
+            # if _body[-1] == "\n":
+                # _body = _body[0:-1]
             _lbl_body = Gtk.Label(label=_body)
             _lbl_body.set_halign(1)
             _lbl_body.set_use_markup(True)
             _lbl_body.set_line_wrap(True)
             _lbl_body.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
-            if _summary:
-                _lbl_body.set_valign(1)
-            else:
-                _lbl_body.set_valign(3)
+            # if _summary:
+                # _lbl_body.set_valign(1)
+            # else:
+                # _lbl_body.set_valign(3)
             self.second_box.pack_start(_lbl_body,True,True,self._pad)
         
         self.close_btn = Gtk.Button.new()
@@ -209,6 +216,10 @@ class notificationWin(Gtk.Window):
                 btn_name = _actions[_actions.index(_ee)+1]
                 _btn = Gtk.Button(label=btn_name)
                 _btn.set_relief(Gtk.ReliefStyle.NONE)
+                _ellipsize = Pango.EllipsizeMode.END
+                _w = _btn.get_child()
+                if isinstance(_w, Gtk.Label):
+                    _w.set_ellipsize(_ellipsize)
                 _btn.connect('clicked',self._on_button_callback, _replaceid, _ee)
                 _actions_box.add(_btn)
         
@@ -313,12 +324,12 @@ class Notifier(Service.Object):
             appIcon = ""
         if action_1:
             # if expireTimeout == -1:
-            expireTimeout = 10000
+            expireTimeout = NOT_DURATION+4000
             self._qw(appName, summary, body, replacesId, action_1, hints, expireTimeout, appIcon)
         else:
             action_1 = []
             # if expireTimeout == -1:
-            expireTimeout = 6000
+            expireTimeout = NOT_DURATION
             self._qw(appName, summary, body, replacesId, action_1, hints, expireTimeout, appIcon)
         
         return replacesId
