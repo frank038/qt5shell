@@ -156,7 +156,7 @@ class notificationWin(Gtk.Window):
         
         if _pixbuf:
             _img = Gtk.Image.new_from_pixbuf(_pixbuf)
-            self.btn_icon_box.pack_start(_img,True,True,4)
+            self.btn_icon_box.pack_start(_img,False,True,4)
         
         # box for summary and body
         self.second_box = Gtk.Box.new(1,0)
