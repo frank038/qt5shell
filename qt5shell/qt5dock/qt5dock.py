@@ -714,7 +714,8 @@ class SecondaryWin(QWidget):
                 self.cbox = QHBoxLayout()
                 self.cbox.setContentsMargins(4,0,4,0)
                 self.clock_btn = QPushButton()
-                self.clock_btn.setStyleSheet("background: "+self._background_color+";")
+                self.clock_btn.setObjectName("btnbackground")
+                # self.clock_btn.setStyleSheet("background: "+self._background_color+";")
                 self.clock_btn.setFlat(True)
                 self.clock_btn.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
                 self.clock_btn.setIcon(QIcon("icons/no_clock.png"))
@@ -733,7 +734,8 @@ class SecondaryWin(QWidget):
                     self.abox.insertLayout(3, self.mbtnbox)
                 # the window menu
                 self.mbutton = QPushButton()
-                self.mbutton.setStyleSheet("background: "+self._background_color+";")
+                self.mbutton.setObjectName("btnbackground")
+                # self.mbutton.setStyleSheet("background: "+self._background_color+";")
                 self.mbutton.setFlat(True)
                 self.mbutton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
                 self.mbutton.setIcon(QIcon("icons/menu.png"))
@@ -815,7 +817,8 @@ class SecondaryWin(QWidget):
                     tterm = entry.getTerminal()
                     #
                     self.pbtn = QPushButton()
-                    self.pbtn.setStyleSheet("background: "+self._background_color+";")
+                    self.pbtn.setObjectName("btnbackground")
+                    # self.pbtn.setStyleSheet("background: "+self._background_color+";")
                     self.pbtn.setFlat(True)
                     #
                     picon = QIcon.fromTheme(icon)
@@ -928,7 +931,8 @@ class SecondaryWin(QWidget):
             self.audiobox.setContentsMargins(0,0,0,0)
             self.abox.insertLayout(14, self.audiobox)
             self.btn_audio = QPushButton()
-            self.btn_audio.setStyleSheet("background: "+self._background_color+";")
+            self.btn_audio.setObjectName("btnbackground")
+            # self.btn_audio.setStyleSheet("background: "+self._background_color+";")
             self.btn_audio.setFlat(True)
             #
             self.btn_audio.setIconSize(QSize(button_size, button_size))
@@ -989,7 +993,8 @@ class SecondaryWin(QWidget):
             if USE_MICROPHONE:
                 #
                 self.btn_mic = QPushButton()
-                self.btn_mic.setStyleSheet("background: "+self._background_color+";")
+                self.btn_mic.setObjectName("btnbackground")
+                # self.btn_mic.setStyleSheet("background: "+self._background_color+";")
                 self.btn_mic.setFlat(True)
                 self.btn_mic.setIconSize(QSize(button_size, button_size))
                 #
@@ -1024,7 +1029,8 @@ class SecondaryWin(QWidget):
         if USE_CLIPBOARD:
             self.btn_clip = QPushButton(icon=QIcon("icons/qpasteboard.png"))
             self.btn_clip.setIconSize(QSize(button_size-button_padding, button_size-button_padding))
-            self.btn_clip.setStyleSheet("background: "+self._background_color+";")
+            self.btn_clip.setObjectName("btnbackground")
+            # self.btn_clip.setStyleSheet("background: "+self._background_color+";")
             self.btn_clip.setFlat(True)
             #
             self._is_clipboard_shown = 0
@@ -1061,7 +1067,8 @@ class SecondaryWin(QWidget):
         ############### battery
         if use_battery_info and use_clock:
             self.btn_batt = QPushButton()
-            self.btn_batt.setStyleSheet("background: "+self._background_color+";")
+            self.btn_batt.setObjectName("btnbackground")
+            # self.btn_batt.setStyleSheet("background: "+self._background_color+";")
             self.btn_batt.setFlat(True)
             self.btn_batt.type = "bat"
             self.btn_batt.installEventFilter(self)
@@ -1123,6 +1130,7 @@ class SecondaryWin(QWidget):
             self.abox.insertLayout(21, self.virtbox)
             self.abox.insertLayout(22, self.mbtnbox)
         #
+        self.setStyleSheet("#btnbackground {background: "+self._background_color+";}")
         #######
         # file and directory watchers
         if use_menu:
@@ -2383,7 +2391,8 @@ class SecondaryWin(QWidget):
             return
         #
         wbtn = QPushButton()
-        wbtn.setStyleSheet("background: "+self._background_color+";")
+        wbtn.setObjectName("btnbackground")
+        # wbtn.setStyleSheet("background: "+self._background_color+";")
         wbtn.setFlat(True)
         #
         wbtn.dev = dd[0]
@@ -2741,23 +2750,31 @@ class SecondaryWin(QWidget):
                 break
     
     def on_add_client(self, _idx=None):
-        if _idx == None:
+        if _idx == None or self.client_mic_change == None:
             return
         #
-        for el in self.pulse.source_list():
+        _is_found = 0
+        _source_list = self.pulse.source_list()
+        for el in _source_list:
             if el.index == self.client_mic_change:
                 if el.name[-8:] == ".monitor":
                     # remove the invalid entry
                     for ell in self.client_mic[:]:
                         if ell[0] == _idx:
                             self.client_mic.remove(ell)
+                            self.client_mic_change = None
                             break
                     return
+        
         #
-        for el in self.client_mic[:]:
-            if el[0] == _idx:
-                el.append(self.client_mic_change)
-                break
+        for el in _source_list:
+            if el.index == self.client_mic_change:
+                _is_found = 1
+        if _is_found:
+            for el in self.client_mic[:]:
+                if el[0] == _idx:
+                    el.append(self.client_mic_change)
+                    break
         self.client_mic_change = None
         # print("CLIENT LIST: ", self.client_mic)
         if len(self.client_mic) > 0:
