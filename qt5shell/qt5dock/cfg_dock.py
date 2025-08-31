@@ -52,6 +52,14 @@ USE_AUDIO=1
 AUDIO_STEP=5
 # starting audio level: 0-100
 AUDIO_START_LEVEL=30
+# enable the volume level indicator window (USE_AUDIO=1 required): 0 no - 1 yes
+VOL_INDICATOR=1
+# both width and height: minimum 80
+VOL_INDICATOR_SIZE=200
+# vertical position: "center" (center of the screen) - integer value (from bottom)
+VOL_INDICATOR_POS="center"
+# how long the volume level window will stay on the desktop
+VOL_INDICATOR_INTERVAL=1500
 # show the microphone icon - experimental - USE_AUDIO is required
 # 0 no - 1 yes - 2 also get the applications using it
 USE_MICROPHONE=1
