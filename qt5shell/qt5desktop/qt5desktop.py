@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Version 0.9.62
+# Version 0.9.66
 
 from PyQt5.QtCore import (pyqtSlot,QProcess, QCoreApplication, QTimer, QModelIndex,QFileSystemWatcher,QEvent,QObject,QUrl,QFileInfo,QRect,QStorageInfo,QMimeData,QMimeDatabase,QFile,QThread,Qt,pyqtSignal,QSize,QMargins,QDir,QByteArray,QItemSelection,QItemSelectionModel,QPoint)
 from PyQt5.QtWidgets import (QStyleFactory,QTreeWidget,QTreeWidgetItem,QLayout,QHeaderView,QTreeView,QSpacerItem,QScrollArea,QTextEdit,QSizePolicy,qApp,QBoxLayout,QLabel,QPushButton,QDesktopWidget,QApplication,QDialog,QGridLayout,QMessageBox,QLineEdit,QTabWidget,QWidget,QGroupBox,QComboBox,QCheckBox,QProgressBar,QListView,QFileSystemModel,QItemDelegate,QStyle,QFileIconProvider,QAbstractItemView,QFormLayout,QAction,QMenu)
@@ -1738,6 +1738,7 @@ class MainWin(QWidget):
                 self.changeMedia(ddevice, name, ttype, 1)
     
     def changeMedia(self, ddevice, name, ttype, media_notification):
+        name = name or "(No name)"
         iitem = name
         if ttype == "cd_no_disk":
             iicon_type = "icons/media-optical-no.svg"
@@ -1778,6 +1779,7 @@ class MainWin(QWidget):
             MyDialog("Info", "Cannot add the device {}.".format(name), self)
             return
         #
+        name = name or "(No name)"
         iitem = name
         #
         if ttype == "flash-ms":
