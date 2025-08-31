@@ -4961,7 +4961,7 @@ class winClipboard(QWidget):
                         os.remove(os.path.join(clips_path, iitem))
                         del CLIPS_DICT[iitem]
                 #
-                self.textLW.clear()
+                # self.textLW.clear()
             except Exception as E:
                 MyDialog("Error", str(E), None)
             try:
@@ -4973,10 +4973,10 @@ class winClipboard(QWidget):
             except Exception as E:
                 MyDialog("Error", str(E), None)
             #
-            self.textLW.clear()
+            # self.textLW.clear()
             self.actual_clip = None
             #
-            self.cwindow.close()
+            # self.cwindow.close()
     
     def eventFilter(self, object, event):
         if event.type() == QEvent.WindowDeactivate:
