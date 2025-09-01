@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.66
+# 0.9.67
 
 from PyQt5.QtCore import (pyqtSlot,QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QProgressBar,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -2975,6 +2975,7 @@ class SecondaryWin(QWidget):
             self.vol_t.setInterval(self.vol_int)
             # self.vol_t.setTimerType(Qt.VeryCoarseTimer)
             self.vol_t.timeout.connect(lambda: self.vol_close(self.vol_w))
+            self.vol_t.start(self.vol_int)
         else:
             self.vol_t.start(self.vol_int)
     
@@ -2984,6 +2985,7 @@ class SecondaryWin(QWidget):
         self.vol_w = None
         self.volume_close = 0
         self.vol_w = None
+        self.vol_t = None
     
     #
     def on_mbtn_mixer(self):
