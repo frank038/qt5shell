@@ -4948,16 +4948,17 @@ class winMpris(QWidget):
                         old_icon = player_data[3]
                         if old_icon != _icon:
                             # ICON CHANGED
-                            try:
-                                if USE_MPRIS == 2 and _icon and _icon.startswith("https://"):
+                            if USE_MPRIS == 2 and _icon and _icon.startswith("https://"):
+                                try:
                                     img_data = requests.get(_icon).content
                                     with open('/tmp/mpris_image_name.jpg', 'wb') as handler:
                                         handler.write(img_data)
-                                if not os.path.exists('/tmp/mpris_image_name.jpg'):
+                                    if not os.path.exists('/tmp/mpris_image_name.jpg'):
+                                        _icon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+                                except:
+                                    # if not os.path.exists('/tmp/mpris_image_name.jpg'):
                                     _icon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
-                            except:
-                                if not os.path.exists('/tmp/mpris_image_name.jpg'):
-                                    _icon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+                            #
                             player_data[3] = _icon
                     #
                     iface = player_data[1]
@@ -5058,8 +5059,8 @@ class winMpris(QWidget):
                                 _iicon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
                             else:
                                 _iicon = str(Path(unquote(urlparse(_iicon_tmp).path)))
-                            if not os.path.exists(_iicon):
-                                _iicon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+                        if not os.path.exists(_iicon):
+                            _iicon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
                         #
                         try:
                             if os.path.exists(_iicon):
