@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-# 0.9.67
+# 0.9.68
 
 from PyQt5.QtCore import (pyqtSlot,QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QProgressBar,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
 from PyQt5.QtGui import (QDesktopServices,QCursor,QFontMetrics,QFont,QIcon,QImage,QPixmap,QPalette,QWindow,QColor,QPainterPath)
+from PyQt5 import QtDBus
 import sys, os, time
 import shutil
 from Xlib.display import Display
@@ -83,6 +84,29 @@ _MENU = None
 _bus = None
 
 ##########
+
+mainloop = None
+bus = None
+
+if USE_MPRIS:
+    try:
+        from dbus.mainloop.pyqt5 import DBusQtMainLoop
+        mainloop = DBusQtMainLoop(set_as_default=True)
+    except:
+        USE_MPRIS = 0
+
+if USE_MPRIS:
+    try:
+        from urllib.parse import urlparse, unquote
+        from pathlib import Path
+    except:
+        USE_MPRIS = 0
+    #
+    if USE_MPRIS == 2:
+        try:
+            import requests
+        except:
+            USE_MPRIS = 1
 
 if isinstance(USE_NOTIFICATION, str):
     if not os.path.exists(USE_NOTIFICATION):
@@ -178,6 +202,7 @@ if USE_CLIPBOARD:
         else:
             CLIPS_DICT[iitem] = [iitem_text]
     #
+
 
 def dbus_to_python(data):
     if isinstance(data, dbus.String):
@@ -921,6 +946,26 @@ class SecondaryWin(QWidget):
         self.abox.insertWidget(12, self.labelw2)
         self.labelw2.hide()
         self._on_label_2(label2_script,label2_interval,label2_use_richtext,label2_color,label2_font,label2_font_size,label2_font_weight,label2_font_italic,label2_command1,label2_command2)
+        # 
+        # mpris - 13
+        if USE_MPRIS:
+            self.btn_mpris = QPushButton(icon=QIcon("icons/mpris_icons/mpris.svg"))
+            self.btn_mpris.setIconSize(QSize(button_size-button_padding, button_size-button_padding))
+            self.btn_mpris.setObjectName("btnbackground")
+            self.btn_mpris.setFlat(True)
+            #
+            self.mpris_is_shown = None
+            self.btn_mpris.clicked.connect(self.on_mpris)
+            # self.btn_mpris.setContextMenuPolicy(Qt.CustomContextMenu)
+            # self.btn_mpris.customContextMenuRequested.connect(self.on_clipboard2)
+            #
+            # {code: [player_name, player-interface, properties_manager-interface, icon]}
+            self.LIST_PLAYERS = {}
+            #
+            _mpris = winMpris(self)
+            self.mpris_is_shown = _mpris
+            #
+            self.abox.insertWidget(13, self.btn_mpris)
         #
         # audio - 14
         # needed for right click event
@@ -1175,10 +1220,10 @@ class SecondaryWin(QWidget):
                 self.fileSystemWatcher.addPath(USE_NOTIFICATION)
         #### notification server
         if USE_NOTIFICATION_SERVER == 1:
-            from dbus.mainloop.pyqt5 import DBusQtMainLoop
-            mainloop = DBusQtMainLoop(set_as_default=True)
-            #from dbus.mainloop.glib import DBusGMainLoop
-            #mainloop = DBusGMainLoop(set_as_default=True)
+            global mainloop
+            if mainloop == None:
+                from dbus.mainloop.pyqt5 import DBusQtMainLoop
+                mainloop = DBusQtMainLoop(set_as_default=True)
             bus = dbus.SessionBus()
             dbus.set_default_main_loop(mainloop)
             bus.add_match_string_non_blocking("eavesdrop=true, interface='org.freedesktop.Notifications', member='Notify'")
@@ -1672,7 +1717,7 @@ class SecondaryWin(QWidget):
     def from_server_notifications(self, bus, message):
         PATH_TO_STORE = os.path.join(curr_path, "mynots")
         not_list = message.get_args_list()
-        if len(not_list) == 1:
+        if len(not_list) == 1 or len(not_list) == 3:
             return
         # appName, replacesId, appIcon, summary, body, actions, hints, expireTimeout
         _app_name = dbus_to_python(not_list[0])
@@ -2746,7 +2791,6 @@ class SecondaryWin(QWidget):
             _client_name = _client.name
             # applications that use the mic: client_index, client_name, source_idx
             self.client_mic.append([_client_idx,_client_name])
-            # print("CLIENT: {} - {}".format(_client_idx, _client_name))
             #
             if _client_idx != None:
                 _t = QTimer.singleShot(1000, lambda: self.on_add_client(_client_idx))
@@ -2797,7 +2841,6 @@ class SecondaryWin(QWidget):
                 break
         #
         self.client_mic_change = None
-        # print("CLIENT LIST: ", self.client_mic)
         for el in self.client_mic:
             if len(el) < 3:
                 self.client_mic.remove(el)
@@ -3112,7 +3155,7 @@ class SecondaryWin(QWidget):
                     self.laudiobox.takeAt(i)
                     widget.deleteLater()
                     widget = None
-        #
+        # print - automatizzare self.start_sink_name con 'set as default'
         try:
             _sink_file_path = os.path.join(curr_path,"sink_default")
             if os.path.exists(_sink_file_path):
@@ -3313,6 +3356,18 @@ class SecondaryWin(QWidget):
                         image.save(os.path.join(images_path, idx), IMAGE_FORMAT)
                     except Exception as E:
                         MyDialog("Error", str(E), None)
+    
+    def on_mpris(self):
+        if self.mpris_is_shown is not None:
+            # self.mpris_is_shown.close()
+            # self.mpris_is_shown = None
+            if not self.mpris_is_shown.isVisible():
+                self.mpris_is_shown.show()
+            elif self.mpris_is_shown.isVisible():
+                self.mpris_is_shown.hide()
+            return
+        # _mpris = winMpris(self)
+        # self.mpris_is_shown = _mpris
     
     def on_winClipboard(self):
         if self.clipw_is_shown is not None:
@@ -4407,7 +4462,6 @@ class SecondaryWin(QWidget):
         font = self.font()
         metric = QFontMetrics(font)
         #
-        # return "ciao"
         # boxWidth = wWidth*QApplication.instance().devicePixelRatio()/(metric.fontDpi()/96)
         if text:
             boxWidth = wWidth - metric.size(0, text[0]).width()*2
@@ -4709,6 +4763,443 @@ QSlider::handle
     def _close(self):
         self.window.volume_close = 0
         self.close()
+
+# mpris
+class winMpris(QWidget):
+    def __init__(self, parent=None):
+        super(winMpris, self).__init__(parent)
+        self.window = parent
+        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setWindowTitle("qt5mpris-1")
+        ####### main box 
+        mainBox = QVBoxLayout()
+        mainBox.setContentsMargins(4,4,4,4)
+        self.setLayout(mainBox)
+        ###
+        # {code: [player_name, player-interface, properties_manager-interface, icon]}
+        self.list_players = self.window.LIST_PLAYERS
+        #
+        self.bus = QtDBus.QDBusConnection.sessionBus()
+        if not self.bus.isConnected():
+            print("Not connected to dbus!")
+            # disabilitare tutto
+        #
+        self.bus.connect("",'/org/freedesktop/DBus','org.freedesktop.DBus',"NameOwnerChanged",None,self.on_bus_connected)
+        #
+        # # at start
+        # OBJ = "/org/mpris/MediaPlayer2"
+        # IF_PLAYER = "org.mpris.MediaPlayer2.Player"
+        # mpris = self.find_first_mpris_service(bus)
+        # if mpris:
+            # iface = QtDBus.QDBusInterface(
+                # mpris,
+                # "/org/mpris/MediaPlayer2",
+                # "org.freedesktop.DBus.Properties",
+                # self.bus)
+        #
+        ###
+        # widget for the tab widget
+        self.box_widget2 = QWidget()
+        mainBox.addWidget(self.box_widget2)
+        ##### 
+        self.lbox = QVBoxLayout()
+        self.lbox.setContentsMargins(0,0,0,0)
+        self.box_widget2.setLayout(self.lbox)
+        #
+        self.textLW = QListWidget()
+        self.textLW.setSelectionMode(1)
+        self.textLW.setSpacing(2)
+        self.textLW.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        # self.textLW.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        # self.textLW.itemClicked.connect(self.on_item_clicked)
+        mainBox.addWidget(self.textLW)
+        ############
+        # self.show()
+        self.setGeometry(0,0,MPRIS_WIN_WIDTH,MPRIS_WIN_HEIGHT)
+        #
+        # if self.window.mpris_is_shown:
+            # self.window.mpris_is_shown.close()
+            # self.window.mpris_is_shown = None
+        #
+        # if not self.window.mpris_is_shown.isVisible():
+            # self.window.mpris_is_shown.show()
+        # elif self.window.mpris_is_shown.isVisible():
+            # self.window.mpris_is_shown.hide()
+        #
+        cwX = 0
+        cwY = 0
+        NW = self.width()
+        NH = self.height()
+        this_geom = self.geometry()
+        if dock_position == 0:
+            sy = dock_height+clock_gapy
+            sx = WINW-this_geom.width()-clock_gapx
+        elif dock_position == 1:
+            sy = WINH - dock_height - self.geometry().height() - clock_gapy
+            sx = WINW-this_geom.width()-clock_gapx
+        self.setGeometry(sx, sy, MPRIS_WIN_WIDTH, MPRIS_WIN_HEIGHT)
+        ###
+        #
+        # self.show()
+        self.hide()
+        #
+        if LOST_FOCUS_CLOSE == 1:
+            self.installEventFilter(self)
+    
+    @pyqtSlot(str, str, str)
+    # name - old - new
+    # if new, old is empty
+    # if old, new is empty
+    def on_bus_connected(self,  _name, _old, _new):
+        if _name.startswith("org.mpris.MediaPlayer2.") and str(_old) == "":
+            iface = QtDBus.QDBusInterface(
+                _name,
+                "/org/mpris/MediaPlayer2",
+                "org.freedesktop.DBus.Properties",
+                self.bus)
+            #
+            # self.list_players["{}".format(str(new))] = [player_name, player, properties_manager, icon]
+            player_name = _name
+            player = iface
+            properties_manager = None
+            icon = None
+            self.list_players["{}".format(str(_new))] = [player_name, player, properties_manager, icon]
+            #
+            iface.connection().connect( _name, # name
+                "/org/mpris/MediaPlayer2", # path
+                "org.freedesktop.DBus.Properties", # iface
+                "PropertiesChanged", # method
+                [],
+                None, 
+                self.get_mpris_message # function
+                )
+        #
+        elif str(_new) == "":
+            if str(_old) in self.list_players:
+                del self.list_players[str(_old)]
+                self.on_list_item_remove(["item-remove", str(_old)])
+    
+    def get_data_player(self, iface, _d):
+        _data = None
+        msg = iface.call('Get', 'org.mpris.MediaPlayer2.Player', _d)
+        if msg.type() == QtDBus.QDBusMessage.MessageType.ReplyMessage:
+            _data = msg.arguments()[0]
+        return _data
+    
+    def find_current_state(self, _player):
+        if _player in self.list_players:
+            player_data = self.list_players[_player]
+            iface = player_data[1]
+            ret = self.get_data_player(iface, 'PlaybackStatus')
+            return ret
+        return None
+    
+    # Play - Pause - Stop
+    def set_player_action(self, _player, _action):
+        # _data = None
+        if _player in self.list_players:
+            player_data = self.list_players[_player]
+            iface = player_data[1]
+            #
+            zservice = player_data[0]
+            zpath = '/org/mpris/MediaPlayer2'
+            ziface = 'org.mpris.MediaPlayer2.Player'
+            smp = QtDBus.QDBusInterface(zservice, zpath, ziface)
+            smp.call(_action)
+    
+    @pyqtSlot(QtDBus.QDBusMessage)
+    def get_mpris_message(self, msg):
+        if 'Metadata' in msg.arguments()[1]:
+            _metadata = msg.arguments()[1]['Metadata']
+            if _metadata:
+                #
+                _title = "Title"
+                _artist = "Artist"
+                _icon = None
+                if 'xesam:title' in _metadata:
+                    _title = _metadata['xesam:title']
+                else:
+                    # if no title in the metadata do nothing
+                    return
+                if 'xesam:artist' in _metadata:
+                    _artist = _metadata['xesam:artist'][0]
+                if 'mpris:artUrl' in _metadata:
+                    _icon = _metadata['mpris:artUrl']
+                #
+                _player = str(msg.service())
+                if _player in self.list_players:
+                    player_data = self.list_players[_player]
+                    # add the icon
+                    if player_data[3] == None:
+                        if _icon != None:
+                            # NEW ICON
+                            try:
+                                if USE_MPRIS == 2 and _icon and _icon.startswith("https://"):
+                                    img_data = requests.get(_icon).content
+                                    with open('/tmp/mpris_image_name.jpg', 'wb') as handler:
+                                        handler.write(img_data)
+                                if not os.path.exists('/tmp/mpris_image_name.jpg'):
+                                    _icon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+                            except:
+                                if not os.path.exists('/tmp/mpris_image_name.jpg'):
+                                    _icon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+                            player_data[3] = _icon
+                    else:
+                        old_icon = player_data[3]
+                        if old_icon != _icon:
+                            # ICON CHANGED
+                            try:
+                                if USE_MPRIS == 2 and _icon and _icon.startswith("https://"):
+                                    img_data = requests.get(_icon).content
+                                    with open('/tmp/mpris_image_name.jpg', 'wb') as handler:
+                                        handler.write(img_data)
+                                if not os.path.exists('/tmp/mpris_image_name.jpg'):
+                                    _icon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+                            except:
+                                if not os.path.exists('/tmp/mpris_image_name.jpg'):
+                                    _icon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+                            player_data[3] = _icon
+                    #
+                    iface = player_data[1]
+                    #
+                    can_play = self.get_data_player(iface, "CanPlay")
+                    can_pause = self.get_data_player(iface, "CanPause")
+                    playback_status = self.get_data_player(iface, "PlaybackStatus")
+                    _volume = None
+                    player_instance = msg.service()
+                    player_name = player_data[0]
+                    #
+                    _list = ["name-added", player_instance, player_name, _icon, can_play, can_pause, _title, _artist, playback_status]
+                    self.on_list_item_add(_list)
+        #
+        elif "PlaybackStatus" in msg.arguments()[1]:
+            _status = msg.arguments()[1]["PlaybackStatus"]
+            #
+            _player = str(msg.service())
+            if _player in self.list_players:
+                player_data = self.list_players[_player]
+            player_instance = msg.service()
+            player_name = player_data[0]
+            self.on_list_item_add(["status-changed", player_instance, player_name, _status])
+    
+    # ["name-added", player_instance, player_name, _image, can_play, can_pause, _title, _artist, _volume]
+    # ["status-changed", player_instance, player_name, _status]
+    def on_list_item_add(self, _list):
+        # status changed
+        if _list[0] == "status-changed":
+            _found = 0
+            num_items = self.textLW.count()
+            for i in range(num_items):
+                if self.textLW.item(i).idx == _list[1]:
+                    _found = 1
+                    break
+            #
+            if _found == 1:
+                _status = _list[3]
+                list_widget_item = self.textLW.item(i)
+                _w = self.textLW.itemWidget(list_widget_item)
+                _box = _w.layout()
+                num_items2 = _box.count()
+                for ii in range(num_items2):
+                    _wdg = _box.itemAt(ii).widget()
+                    if isinstance(_wdg, QPushButton):
+                        if _status == "Playing":
+                            _icon = QIcon.fromTheme("media-play", QIcon(os.path.join(curr_path,"icons/mpris_icons/media-play.svg")))
+                        elif _status == "Paused":
+                            _icon = QIcon.fromTheme("media-pause", QIcon(os.path.join(curr_path,"icons/mpris_icons/media-pause.svg")))
+                        elif _status == "Stopped":
+                            _icon = QIcon.fromTheme("media-stop", QIcon(os.path.join(curr_path,"icons/mpris_icons/media-stop.svg")))
+                        _wdg.setIcon(_icon)
+            #
+            return
+        #
+        _found = 0
+        num_items = self.textLW.count()
+        for i in range(num_items):
+            if self.textLW.item(i).idx == _list[1]:
+                _found = 1
+                break
+        #
+        if _found == 1:
+            list_widget_item = self.textLW.item(i)
+            _w = self.textLW.itemWidget(list_widget_item)
+            _box = _w.layout()
+            num_items2 = _box.count()
+            for ii in range(num_items2):
+                _wdg = _box.itemAt(ii).widget()
+                #
+                if isinstance(_wdg, QPushButton):
+                    _status = _list[8]
+                    _icon = None
+                    if _status == "Playing":
+                        _icon = QIcon.fromTheme("media-play", QIcon(os.path.join(curr_path,"icons/mpris_icons/media-play.svg")))
+                    elif _status == "Paused":
+                        _icon = QIcon.fromTheme("media-pause", QIcon(os.path.join(curr_path,"icons/mpris_icons/media-pause.svg")))
+                    elif _status == "Stopped":
+                        _icon = QIcon.fromTheme("media-stop", QIcon(os.path.join(curr_path,"icons/mpris_icons/media-stop.svg")))
+                    if _icon:
+                        _wdg.setIcon(_icon)
+                elif isinstance(_wdg, QLabel):
+                    # if hasattr(_wdg, "title"):
+                        # _wdg.setText(_list[6])
+                    # elif hasattr(_wdg, "artist"):
+                        # _wdg.setText(_list[7])
+                    #
+                    if hasattr(_wdg, "title"):
+                        _text = "{}\n{}".format(_list[6],_list[7])
+                        _wdg.setText(_text)
+                    elif hasattr(_wdg, "icon"):
+                        _iicon_tmp = _list[3]
+                        #
+                        if USE_MPRIS == 2 and _iicon_tmp and _iicon_tmp.startswith("https://"):
+                            _iicon = '/tmp/mpris_image_name.jpg'
+                        else:
+                            if _iicon_tmp == None:# or not os.path.exists(_iicon):
+                                _iicon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+                            else:
+                                _iicon = str(Path(unquote(urlparse(_iicon_tmp).path)))
+                            if not os.path.exists(_iicon):
+                                _iicon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+                        #
+                        try:
+                            if os.path.exists(_iicon):
+                                pix = QPixmap(_iicon)
+                                pix = pix.scaled(MPRIS_IMAGE_SIZE,MPRIS_IMAGE_SIZE)#, aspectRatioMode=Qt.KeepAspectRatio)
+                                if not pix.isNull():
+                                    _wdg.setPixmap(pix)
+                        except:
+                            pass
+        #
+        elif _found == 0:
+            lw = QListWidgetItem()
+            widgetItem = QWidget()
+            widgetItemL = QHBoxLayout()
+            ### play/pause button
+            _play = QPushButton()
+            widgetItemL.addWidget(_play)
+            #
+            # image
+            _iicon_tmp = _list[3]
+            if USE_MPRIS == 2 and _iicon_tmp and _iicon_tmp.startswith("https://"):
+                _iicon = '/tmp/mpris_image_name.jpg'
+            else:
+                if _iicon_tmp == None:# or not os.path.exists(_iicon):
+                    _iicon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+                else:
+                    _iicon = str(Path(unquote(urlparse(_iicon_tmp).path)))
+            if not os.path.exists(_iicon):
+                _iicon = os.path.join(curr_path, "icons/mpris_icons/mpris.svg")
+            #
+            try:
+                if os.path.exists(_iicon):
+                    pix = QPixmap(_iicon)
+                    pix = pix.scaled(MPRIS_IMAGE_SIZE,MPRIS_IMAGE_SIZE)#, aspectRatioMode=Qt.KeepAspectRatio)
+                    if not pix.isNull():
+                        img_lbl = QLabel()
+                        img_lbl.icon = 1
+                        img_lbl.setPixmap(pix)
+                        img_lbl.setMaximumSize(MPRIS_IMAGE_SIZE,MPRIS_IMAGE_SIZE)
+                        img_lbl.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+                        widgetItemL.addWidget(img_lbl)
+            except:
+                pass
+            #
+            # player name
+            # text1 = _list[6]
+            text1 = "{}\n{}".format(_list[6],_list[7])
+            widgetTXT =  QLabel()
+            widgetTXT.setText(text1)
+            widgetTXT.title = 1
+            widgetItemL.addWidget(widgetTXT)
+            #
+            # text2 = _list[7]
+            # widgetTXT2 = QLabel()#text=text2)
+            # widgetTXT2.setText(text2)
+            # widgetTXT2.artist = 1
+            # widgetItemL.addWidget(widgetTXT2)
+            #
+            widgetItemL.addStretch()
+            #
+            #### play/pause button
+            # _play = QPushButton()
+            _play.idx = _list[1]
+            _play.setFlat(True)
+            _play.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+            #
+            _code = _list[1]
+            if _code in self.list_players:
+                _iface = self.list_players[_code][1]
+            _playback_status = self.get_data_player(_iface, "PlaybackStatus")
+            #
+            if _playback_status == "Playing":
+                _icon = QIcon.fromTheme("media-play", QIcon(os.path.join(curr_path,"icons/mpris_icons/media-play.svg")))
+            elif _playback_status == "Paused":
+                _icon = QIcon.fromTheme("media-pause", QIcon(os.path.join(curr_path,"icons/mpris_icons/media-pause.svg")))
+            # elif _playback_status == "Stopped":
+            else:
+                _icon = QIcon.fromTheme("media-stop", QIcon(os.path.join(curr_path,"icons/mpris_icons/media-stop.svg")))
+            _play.setIcon(_icon)
+            _play.setIconSize(QSize(button_size, button_size))
+            _play.clicked.connect(self.on_play)
+            #
+            widgetItem.setLayout(widgetItemL)  
+            lw.setSizeHint(widgetItem.sizeHint())
+            #
+            lw.idx = _list[1]
+            #
+            self.textLW.addItem(lw)
+            self.textLW.setItemWidget(lw, widgetItem)
+    
+    def on_play(self):
+        ret = self.find_current_state(self.sender().idx)
+        if ret in ["Paused", "Stopped"]:
+            # set to playing
+            self.set_player_action(self.sender().idx, "Play")
+            # self.set_player_action(self.sender().idx, "PlayPause")
+            # # verify
+            # ret = self.find_current_state(self.sender().idx)
+        elif ret == "Playing":
+            # set to pause
+            self.set_player_action(self.sender().idx, "Pause")
+            # self.set_player_action(self.sender().idx, "PlayPause")
+            # # verify
+            # ret = self.find_current_state(self.sender().idx)
+    
+    def on_list_item_remove(self, _list):
+        num_items = self.textLW.count()
+        for i in range(num_items):
+            if self.textLW.item(i).idx == _list[1]:
+                itemW = self.textLW.item(i)
+                self.textLW.takeItem(self.textLW.row(itemW))
+                del itemW
+                break
+    
+    def eventFilter(self, object, event):
+        if event.type() == QEvent.WindowDeactivate:
+            # if self.window.mpris_is_shown:
+                # self.window.mpris_is_shown.close()
+                # self.window.mpris_is_shown = None
+                # return True
+            if not self.window.mpris_is_shown.isVisible():
+                self.window.mpris_is_shown.show()
+            elif self.window.mpris_is_shown.isVisible():
+                self.window.mpris_is_shown.hide()
+                return True
+        return False
+    
+    # # do not remove
+    # def find_first_mpris_service(self, BUS):
+        # bus_iface = QtDBus.QDBusInterface(
+            # "org.freedesktop.DBus",
+            # "/org/freedesktop/DBus",
+            # "org.freedesktop.DBus",
+            # BUS
+        # )
+        # reply = bus_iface.call("ListNames")
+        # for name in reply.arguments()[0]:
+            # if name.startswith("org.mpris.MediaPlayer2."):
+                # return name
+        # return None
 
 
 # clipboard

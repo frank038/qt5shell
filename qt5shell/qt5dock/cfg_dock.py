@@ -11,9 +11,10 @@ pbutton_size=34
 # show virtual desktops: 0 no - 1 yes
 virtual_desktops=1
 # use the builtin tray (server x): 0 no - 1 yes
-use_tray=0
-# use the builtin tray (dbus - preferred; implies use_tray=0): 0 no - 1 yes
-use_tray_dbus=1
+use_tray=1
+# use the builtin tray (dbus; implies use_tray=0): 0 no - 1 yes
+# do not use with USE_MPRIS=1 or 2
+use_tray_dbus=0
 # tray icon size (even number)
 tbutton_size = button_size-4
 # tasklist position (with CENTRALIZE_EL=0): 0 left - 1 center
@@ -317,6 +318,14 @@ show_only_active_skip=[]
 # use_clock=1 is required
 # 0 no - 1 yes : one minute check
 use_battery_info=0
+################ mpris
+# 0 no - 1 yes - 2 yes and download icon fron the web if necessary
+# do not use with use_tray_dbus=1
+USE_MPRIS=0
+# width and height of the window
+MPRIS_WIN_WIDTH=800
+MPRIS_WIN_HEIGHT=400
+MPRIS_IMAGE_SIZE=64
 ################
 # # # DO NOT CHANGE
 # increase the value to better centralize elements (L left, R right): 1 or > 1
