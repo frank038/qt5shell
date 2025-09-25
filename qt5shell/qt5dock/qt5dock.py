@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.68
+# 0.9.69
 
 from PyQt5.QtCore import (pyqtSlot,QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QProgressBar,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -632,7 +632,8 @@ class SecondaryWin(QWidget):
         self.position = position
         #
         self.setWindowFlags(self.windowFlags() | Qt.WindowDoesNotAcceptFocus | Qt.FramelessWindowHint)
-        self.setAttribute(Qt.WA_X11NetWmWindowTypeDock)
+        # # for the previous behaviour enable this and disable the block at the end of this file
+        # self.setAttribute(Qt.WA_X11NetWmWindowTypeDock)
         self.setAttribute(Qt.WA_AlwaysShowToolTips, True)
         self.setWindowTitle("qt5dock-1")
         #
@@ -1086,7 +1087,7 @@ class SecondaryWin(QWidget):
             # self.btn_clip.setStyleSheet("background: "+self._background_color+";")
             self.btn_clip.setFlat(True)
             #
-            self._is_clipboard_shown = 0
+            # self._is_clipboard_shown = 0
             self.actual_clip = None
             self.clipw_is_shown = None
             self.btn_clip.clicked.connect(self.on_winClipboard)
@@ -2945,13 +2946,13 @@ class SecondaryWin(QWidget):
             if 0 <= _level < 31:
                 _icon = "audio-volume-low"
                 iicon = QIcon.fromTheme(_icon, QIcon("icons/audio-volume-low.svg"))
-            elif 31 < _level < 61:
+            elif 31 <= _level < 61:
                 _icon = "audio-volume-medium"
                 iicon = QIcon.fromTheme(_icon, QIcon("icons/audio-volume-medium.svg"))
-            elif 61 < _level < 91:
+            elif 61 <= _level < 91:
                 _icon = "audio-volume-high"
                 iicon = QIcon.fromTheme(_icon, QIcon("icons/audio-volume-high.svg"))
-            elif _level <= 100:
+            elif _level >= 91:
                 _icon = "audio-volume-overamplified"
                 iicon = QIcon.fromTheme(_icon, QIcon("icons/audio-volume-overamplified.svg"))
             #
@@ -3815,12 +3816,24 @@ class SecondaryWin(QWidget):
             
     # a new window has apparead
     def on_new_window(self, window_list):
+        # global this_windowID
         for w in window_list:
             #
-            if this_windowID not in self.wid_l:
-                self.wid_l.append(this_windowID)
+            # if this_windowID not in self.wid_l:
+                # self.wid_l.append(this_windowID)
+            #
+            if this_windowID in self.wid_l:
+                continue
+            #
             if w not in self.wid_l:
                 window = self.display.create_resource_object('window', w)
+                #
+                try:
+                    wmname = window.get_wm_name()
+                    if wmname == "qt5volume-1":
+                        continue
+                except:
+                    pass
                 ########### skip unmanaged windows
                 try:
                     prop = window.get_full_property(self.display.intern_atom('_NET_WM_WINDOW_TYPE'), X.AnyPropertyType)
@@ -4673,7 +4686,9 @@ class winVolume(QWidget):
     def __init__(self, parent, _parent):
         super(winVolume, self).__init__(parent)
         self.window = _parent
-        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        # self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WA_ShowWithoutActivating | Qt.WA_TransparentForMouseEvents | Qt.WindowStaysOnTopHint | Qt.WA_X11DoNotAcceptFocus)
+        self.setWindowFlags(self.windowFlags() | Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WA_X11DoNotAcceptFocus)
+        self.setWindowModality(Qt.NonModal)
         self.setWindowTitle("qt5volume-1")
         #
         self.setContentsMargins(0,0,0,0)
@@ -5176,7 +5191,7 @@ class winMpris(QWidget):
                 break
     
     def eventFilter(self, object, event):
-        if event.type() == QEvent.WindowDeactivate:
+        if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
             # if self.window.mpris_is_shown:
                 # self.window.mpris_is_shown.close()
                 # self.window.mpris_is_shown = None
@@ -5473,7 +5488,7 @@ class winClipboard(QWidget):
             # self.cwindow.close()
     
     def eventFilter(self, object, event):
-        if event.type() == QEvent.WindowDeactivate:
+        if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
             if self.window.clipw_is_shown:
                 self.window.clipw_is_shown.close()
                 self.window.clipw_is_shown = None
@@ -5683,7 +5698,7 @@ class menuWin(QWidget):
         self.rbox.addWidget(sepLine2)
         #
         self.hide()
-        # self.show()
+        # # self.show()
         self.updateGeometry()
         #
         # left
@@ -5697,11 +5712,14 @@ class menuWin(QWidget):
             sx = WINW - menu_width - menu_padx
         #
         if dock_position == 1:
+            self.show()
             sy = WINH - dock_height - self.geometry().height() - menu_pady
+            self.setGeometry(sx,sy,sw,sh)
         elif dock_position == 0:
             sy = dock_height + menu_pady
+            self.setGeometry(sx,sy,sw,sh)
         # self.move(sx,sy)
-        self.setGeometry(sx,sy,sw,sh)
+        # self.setGeometry(sx,sy,sw,sh)
         #
         self.emulate_clicked(self.pref, 100)
         self.pref.setChecked(True)
@@ -5720,6 +5738,7 @@ class menuWin(QWidget):
             self.installEventFilter(self)
         #
         self.show()
+        
     #
     def _on_change(self, comm):
         self.close()
@@ -5765,7 +5784,7 @@ class menuWin(QWidget):
 
     
     def eventFilter(self, object, event):
-        if event.type() == QEvent.WindowDeactivate:
+        if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
             if self.window.mw_is_shown:
                 self.window.mw_is_shown.close()
                 self.window.mw_is_shown = None
@@ -6700,7 +6719,7 @@ class calendarWin(QWidget):
                 MyDialog("Error", "{}.".format(str(E)), self)
     
     def eventFilter(self, object, event):
-        if event.type() == QEvent.WindowDeactivate:
+        if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
             if self.window.cw_is_shown:
                 self.window.cw_is_shown.close()
                 self.window.cw_is_shown = None
@@ -7049,5 +7068,62 @@ if __name__ == '__main__':
         _dock.setGeometry(-1,WINH-dock_height,WINW,dock_height)
     #
     _dock.show()
+    ####################
+    # for the previous behaviour disable this and enable line 636
+    display = Display()
+    root = display.screen().root
+    xlist = root.get_full_property(display.intern_atom('_NET_CLIENT_LIST'), Xatom.WINDOW)
+    if xlist:
+        # global this_windowID
+        window_list = xlist.value.tolist()
+        for w in window_list:
+            window = display.create_resource_object('window', w)
+            wmname = window.get_wm_name()
+            #
+            if wmname == "qt5dock-1":
+                this_windowID = w
+                wm_window_type = display.intern_atom('_NET_WM_WINDOW_TYPE')
+                wm_window_type_dock = display.intern_atom('_NET_WM_WINDOW_TYPE_DOCK')
+                window.change_property(wm_window_type, Xatom.ATOM, 32, [wm_window_type_dock, ], X.PropModeReplace)
+                # window.change_attributes(override_redirect=True)
+                # # print(window.get_full_property(wm_window_type, Xatom.ATOM).value[0])
+                # # print(wm_window_type_dock)
+                display.sync()
+                #
+                ### Reserve space for panel
+                if dock_position == 0: # top
+                    width = WINW
+                    height = dock_height
+                    x = 0
+                    y = 0
+                    #
+                    # _NET_WM_STRUT, left, right, top, bottom, CARDINAL[4]/32
+                    window.change_property(display.intern_atom('_NET_WM_STRUT'), display.intern_atom('CARDINAL'), 32, [x, width, y, height], X.PropModeReplace)
+                    #
+                    _top = dock_height
+                    top_start_x = 0
+                    top_end_x = WINW
+                    # _NET_WM_STRUT_PARTIAL, left, right, top, bottom, left_start_y, left_end_y,
+                    # right_start_y, right_end_y, top_start_x, top_end_x, bottom_start_x,
+                    # bottom_end_x,CARDINAL[12]/32
+                    window.change_property(display.intern_atom('_NET_WM_STRUT_PARTIAL'), display.intern_atom('CARDINAL'), 32, [0, 0, _top, 0, 0, 0, 0, 0, top_start_x, top_end_x, 0, 0], X.PropModeReplace)
+                    # window.configure(x=0, y=0)
+                elif dock_position == 1: # bottom
+                    width = WINW
+                    height = dock_height
+                    x = 0
+                    y = WINW-dock_height
+                    #
+                    # _NET_WM_STRUT, left, right, top, bottom, CARDINAL[4]/32
+                    window.change_property(display.intern_atom('_NET_WM_STRUT'), display.intern_atom('CARDINAL'), 32, [x, width, y, height], X.PropModeReplace)
+                    #
+                    _bottom = dock_height
+                    bottom_start_x = 0
+                    bottom_end_x = WINW
+                    window.change_property(display.intern_atom('_NET_WM_STRUT_PARTIAL'), display.intern_atom('CARDINAL'), 32, [0, 0, 0, _bottom, 0, 0, 0, 0, 0, 0, bottom_start_x, bottom_end_x], X.PropModeReplace)
+                    # window.configure(x=0, y=WINW-dock_height)
+                display.sync()
+                break
+    ######################
     #
     ret = app.exec_()
