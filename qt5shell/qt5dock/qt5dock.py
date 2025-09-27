@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.69
+# 0.9.70
 
 from PyQt5.QtCore import (pyqtSlot,QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QProgressBar,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -391,6 +391,12 @@ get_events()
 
 # this_window = None
 this_windowID = None
+mpris_windowID = None
+clipboard_windowID = None
+menu_windowID = None
+calendar_windowID = None
+volume_windowID = None
+windows_windowID = 0
 
 ### TRAY
 TRAY            = 1
@@ -3156,7 +3162,6 @@ class SecondaryWin(QWidget):
                     self.laudiobox.takeAt(i)
                     widget.deleteLater()
                     widget = None
-        # print - automatizzare self.start_sink_name con 'set as default'
         try:
             _sink_file_path = os.path.join(curr_path,"sink_default")
             if os.path.exists(_sink_file_path):
@@ -3816,7 +3821,8 @@ class SecondaryWin(QWidget):
             
     # a new window has apparead
     def on_new_window(self, window_list):
-        # global this_windowID
+        global this_windowID
+        # global windows_windowID
         for w in window_list:
             #
             # if this_windowID not in self.wid_l:
@@ -3830,7 +3836,16 @@ class SecondaryWin(QWidget):
                 #
                 try:
                     wmname = window.get_wm_name()
-                    if wmname == "qt5volume-1":
+                    # if wmname == "qt5volume-1":
+                        # continue
+                    # this_windowID = None
+                    # mpris_windowID = None
+                    # clipboard_windowID = None
+                    # menu_windowID = None
+                    # calendar_windowID = None
+                    # volume_windowID = None
+                    # windows_windowID = 0
+                    if wmname in ["qt5mpris-1", "qt5clipboard-1", "qt5menu-1", "qt5cal-1", "qt5volume-1"]:
                         continue
                 except:
                     pass
@@ -4686,8 +4701,9 @@ class winVolume(QWidget):
     def __init__(self, parent, _parent):
         super(winVolume, self).__init__(parent)
         self.window = _parent
-        # self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WA_ShowWithoutActivating | Qt.WA_TransparentForMouseEvents | Qt.WindowStaysOnTopHint | Qt.WA_X11DoNotAcceptFocus)
-        self.setWindowFlags(self.windowFlags() | Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WA_X11DoNotAcceptFocus)
+        # # self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WA_ShowWithoutActivating | Qt.WA_TransparentForMouseEvents | Qt.WindowStaysOnTopHint | Qt.WA_X11DoNotAcceptFocus)
+        # self.setWindowFlags(self.windowFlags() | Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WA_X11DoNotAcceptFocus)
+        self.setWindowFlags(self.windowFlags() | Qt.SubWindow | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
         self.setWindowModality(Qt.NonModal)
         self.setWindowTitle("qt5volume-1")
         #
@@ -4784,7 +4800,9 @@ class winMpris(QWidget):
     def __init__(self, parent=None):
         super(winMpris, self).__init__(parent)
         self.window = parent
-        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        # self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(self.windowFlags() | Qt.SubWindow | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        # Qt.WA_KeyboardFocusChange) | Qt.SubWindow
         self.setWindowTitle("qt5mpris-1")
         ####### main box 
         mainBox = QVBoxLayout()
@@ -4860,7 +4878,7 @@ class winMpris(QWidget):
         #
         if LOST_FOCUS_CLOSE == 1:
             self.installEventFilter(self)
-    
+        
     @pyqtSlot(str, str, str)
     # name - old - new
     # if new, old is empty
@@ -5191,7 +5209,8 @@ class winMpris(QWidget):
                 break
     
     def eventFilter(self, object, event):
-        if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
+        if event.type() == QEvent.WindowDeactivate:
+        # if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
             # if self.window.mpris_is_shown:
                 # self.window.mpris_is_shown.close()
                 # self.window.mpris_is_shown = None
@@ -5223,7 +5242,8 @@ class winClipboard(QWidget):
     def __init__(self, parent=None):
         super(winClipboard, self).__init__(parent)
         self.window = parent
-        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        # self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(self.windowFlags() | Qt.SubWindow | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
         self.setWindowTitle("qt5clipboard-1")
         ########
         self.mainCLipWidget()
@@ -5488,7 +5508,8 @@ class winClipboard(QWidget):
             # self.cwindow.close()
     
     def eventFilter(self, object, event):
-        if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
+        if event.type() == QEvent.WindowDeactivate:
+        # if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
             if self.window.clipw_is_shown:
                 self.window.clipw_is_shown.close()
                 self.window.clipw_is_shown = None
@@ -5501,7 +5522,8 @@ class menuWin(QWidget):
     def __init__(self, parent=None):
         super(menuWin, self).__init__(parent)
         self.window = parent
-        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        # self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(self.windowFlags() | Qt.SubWindow | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
         self.setWindowTitle("qt5menu-1")
         # skip the taskbar - but unfocus this window
         # self.setAttribute(Qt.WA_X11NetWmWindowTypeSplash)
@@ -5784,7 +5806,8 @@ class menuWin(QWidget):
 
     
     def eventFilter(self, object, event):
-        if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
+        if event.type() == QEvent.WindowDeactivate:
+        # if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
             if self.window.mw_is_shown:
                 self.window.mw_is_shown.close()
                 self.window.mw_is_shown = None
@@ -6405,7 +6428,8 @@ class calendarWin(QWidget):
     def __init__(self, parent=None):
         super(calendarWin, self).__init__(parent)
         self.window = parent
-        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        # self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(self.windowFlags() | Qt.SubWindow | Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
         self.setWindowTitle("qt5cal-1")
         # skip the taskbar - but unfocus this window
         # self.setAttribute(Qt.WA_X11NetWmWindowTypeSplash)
@@ -6719,7 +6743,8 @@ class calendarWin(QWidget):
                 MyDialog("Error", "{}.".format(str(E)), self)
     
     def eventFilter(self, object, event):
-        if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
+        if event.type() == QEvent.WindowDeactivate:
+        # if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.Leave:
             if self.window.cw_is_shown:
                 self.window.cw_is_shown.close()
                 self.window.cw_is_shown = None
