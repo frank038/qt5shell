@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.70
+# 0.9.71
 
 from PyQt5.QtCore import (pyqtSlot,QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QProgressBar,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -1259,7 +1259,7 @@ class SecondaryWin(QWidget):
         self.scroll_widget.updateGeometry()
         _width = self.scroll_widget.geometry().width()
         _pos_X = self.scroll_widget.mapToGlobal(self.scroll_widget.rect().topLeft()).x()
-        w_shift = int((WINW-_width-_pos_X-button_size)/2)
+        w_shift = int((WINW-_width-_pos_X-int(button_size/2))/2)
         self.scroll_widget.setContentsMargins(w_shift,0,0,0)
     
     # def showEvent(self, e):
@@ -3162,6 +3162,7 @@ class SecondaryWin(QWidget):
                     self.laudiobox.takeAt(i)
                     widget.deleteLater()
                     widget = None
+        #
         try:
             _sink_file_path = os.path.join(curr_path,"sink_default")
             if os.path.exists(_sink_file_path):
