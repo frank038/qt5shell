@@ -48,6 +48,8 @@ The notification server:
 
 All the available options and customizations are in the cfg files.
 
+Two tray applets for using instead of the internal applets: volume and mpris managers; the applets are full compatible with the status notifier tray (to be used instead of the x11 tray).
+
 No more features will be added, maybe.
 
 Pros:
