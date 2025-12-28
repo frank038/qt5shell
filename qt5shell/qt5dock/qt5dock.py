@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 0.9.71
+# 0.9.72
 
 from PyQt5.QtCore import (pyqtSlot,QUrl,QThread,pyqtSignal,Qt,QTimer,QTime,QDate,QSize,QRect,QCoreApplication,QEvent,QPoint,QFileSystemWatcher,QProcess,QFileInfo,QFile,QDateTime)
 from PyQt5.QtWidgets import (QWidget,QProgressBar,QListView,QAbstractItemView,QHBoxLayout,QBoxLayout,QLabel,QPushButton,QSizePolicy,QMenu,QVBoxLayout,QFormLayout,QTabWidget,QListWidget,QScrollArea,QListWidgetItem,QDialog,QMessageBox,QMenu,qApp,QAction,QDialogButtonBox,QTreeWidget,QTreeWidgetItem,QDesktopWidget,QLineEdit,QFrame,QCalendarWidget,QTableView,QStyleFactory,QApplication,QButtonGroup,QRadioButton,QSlider,QTextEdit,QTextBrowser,QDateTimeEdit,QCheckBox,QComboBox)
@@ -977,6 +977,7 @@ class SecondaryWin(QWidget):
         # audio - 14
         # needed for right click event
         self.btn_audio = None
+        self.btn_mic = None
         if USE_AUDIO:
             self.audiobox = QHBoxLayout()
             self.audiobox.setContentsMargins(0,0,0,0)
@@ -1346,12 +1347,12 @@ class SecondaryWin(QWidget):
                 bus._user_secondary_activate()
             except:
                 pass
-        # # left click
-        # elif _n == 1:
-            # name = args[0]
-            # path = args[1]
-            # menu = args[2]
-            # self._create_menu(name,menu,widget)
+        # left click
+        elif _n == 1:
+            name = args[0]
+            path = args[1]
+            menu = args[2]
+            self._create_menu(name,menu,widget)
     
     def _set_icon(self, _icon, _name):
         _num_items = self.tray_box.count()
@@ -1385,6 +1386,8 @@ class SecondaryWin(QWidget):
         self.build_menu(conn, name, _menu)
         # remove all in the menu
         self.sender().clear()
+        if _MENU == []:
+            return
         for _data in _MENU:
             self.on_create_menu(self.sender(), _data)
         self.sender().show()
@@ -3162,7 +3165,7 @@ class SecondaryWin(QWidget):
                     self.laudiobox.takeAt(i)
                     widget.deleteLater()
                     widget = None
-        #
+        # print - automatizzare self.start_sink_name con 'set as default'
         try:
             _sink_file_path = os.path.join(curr_path,"sink_default")
             if os.path.exists(_sink_file_path):
@@ -4413,9 +4416,10 @@ class SecondaryWin(QWidget):
                             widget.setToolTip(str(win_name.decode(encoding='UTF-8')))
                         except: pass
             elif event.type() == QEvent.Wheel:
-                if widget.winid == -999:
-                    # event.angleDelta() : negative down - positive up
-                    self.on_volume_change(event.angleDelta())
+                if hasattr(widget, "winid"):
+                    if widget.winid == -999:
+                        # event.angleDelta() : negative down - positive up
+                        self.on_volume_change(event.angleDelta())
             elif event.type() == QEvent.MouseButtonPress:
                 # volume button
                 if hasattr(widget, "winid"):
@@ -7010,17 +7014,20 @@ class Bus:
         self.path = path
 
     def call_sync(self, interface, method, params, params_type, return_type):
-        return self.conn.call_sync(
-            self.name,
-            self.path,
-            interface,
-            method,
-            GLib.Variant(params_type, params),
-            GLib.VariantType(return_type),
-            Gio.DBusCallFlags.NONE,
-            -1,
-            None,
-        )
+        try:
+            return self.conn.call_sync(
+                self.name,
+                self.path,
+                interface,
+                method,
+                GLib.Variant(params_type, params),
+                GLib.VariantType(return_type),
+                Gio.DBusCallFlags.NONE,
+                -1,
+                None,
+            )
+        except:
+            pass
 
     def get_menu_layout(self, *args):
         return self.call_sync(
