@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# V. 0.5
+# V. 0.5.1
 
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QLabel, QWidget, QApplication, QBoxLayout, QPushButton
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem, QSizePolicy
@@ -31,6 +31,7 @@ menu_is_shown = 0
 class myMenu(QMenu):
     def __init__(self):
         super(myMenu, self).__init__()
+        self.setWindowTitle("qtmpris1")
         layout = QBoxLayout(QBoxLayout.TopToBottom)
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
